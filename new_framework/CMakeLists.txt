@@ -6,5 +6,8 @@ project(new_framework LANGUAGES C)
 include(CTest)
 enable_testing()
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/process_test_output.py
+               ${CMAKE_CURRENT_BINARY_DIR}/process_test_output.py COPYONLY)
+
 add_subdirectory(src)
 add_subdirectory(tests)
