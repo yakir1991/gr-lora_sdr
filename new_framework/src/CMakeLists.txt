@@ -14,5 +14,8 @@ target_include_directories(lora_whitening PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(lora_hamming lora_hamming.c)
 target_include_directories(lora_hamming PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+add_library(lora_interleaver lora_interleaver.c)
+target_include_directories(lora_interleaver PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_executable(hello_world hello_world.c)
 target_link_libraries(hello_world PRIVATE signal_utils)
