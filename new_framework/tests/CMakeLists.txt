@@ -10,3 +10,8 @@ add_executable(test_lora_data_source test_lora_data_source.c)
 target_link_libraries(test_lora_data_source PRIVATE lora_data_source)
 add_test(NAME test_lora_data_source COMMAND test_lora_data_source)
 set_tests_properties(test_lora_data_source PROPERTIES PASS_REGULAR_EXPRESSION "Read [0-9]+ bytes successfully")
+
+add_executable(test_lora_add_crc test_lora_add_crc.c)
+target_link_libraries(test_lora_add_crc PRIVATE lora_add_crc)
+add_test(NAME test_lora_add_crc COMMAND test_lora_add_crc)
+set_tests_properties(test_lora_add_crc PROPERTIES PASS_REGULAR_EXPRESSION "All CRC tests passed")
