@@ -28,5 +28,8 @@ add_library(lora_fft_demod lora_fft_demod.c ../../lib/kiss_fft.c)
 target_include_directories(lora_fft_demod PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ../../lib)
 target_link_libraries(lora_fft_demod PUBLIC m)
 
+add_library(lora_frame_sync lora_frame_sync.c)
+target_include_directories(lora_frame_sync PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_executable(hello_world hello_world.c)
 target_link_libraries(hello_world PRIVATE signal_utils)
