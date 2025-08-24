@@ -1,0 +1,42 @@
+#include "lora_header.h"
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
+int main(void)
+{
+    uint8_t hdr[5];
+    uint8_t len, cr;
+    bool crc;
+
+    lora_build_header(13, 1, true, hdr);
+    if (lora_parse_header(hdr, &len, &cr, &crc) != 0 || len != 13 || cr != 1 || !crc) {
+        printf("Header test 1 failed\n");
+        return 1;
+    }
+
+    lora_build_header(42, 2, false, hdr);
+    if (lora_parse_header(hdr, &len, &cr, &crc) != 0 || len != 42 || cr != 2 || crc) {
+        printf("Header test 2 failed\n");
+        return 1;
+    }
+
+    lora_build_header(20, 1, true, hdr);
+    hdr[4] ^= 0x1; // corrupt CRC
+    if (lora_parse_header(hdr, &len, &cr, &crc) == 0) {
+        printf("Header CRC check failed\n");
+        return 1;
+    }
+
+    uint8_t rh[4];
+    uint8_t to, from, id, flags;
+    rh_rf95_build_header(1, 2, 3, 4, rh);
+    rh_rf95_parse_header(rh, &to, &from, &id, &flags);
+    if (to != 1 || from != 2 || id != 3 || flags != 4) {
+        printf("RH_RF95 header test failed\n");
+        return 1;
+    }
+
+    printf("All header tests passed\n");
+    return 0;
+}
