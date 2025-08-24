@@ -20,3 +20,8 @@ add_executable(test_lora_whitening test_lora_whitening.c)
 target_link_libraries(test_lora_whitening PRIVATE lora_whitening)
 add_test(NAME test_lora_whitening COMMAND test_lora_whitening)
 set_tests_properties(test_lora_whitening PROPERTIES PASS_REGULAR_EXPRESSION "Whitening test passed")
+
+add_executable(test_lora_hamming test_lora_hamming.c)
+target_link_libraries(test_lora_hamming PRIVATE lora_hamming)
+add_test(NAME test_lora_hamming COMMAND test_lora_hamming)
+set_tests_properties(test_lora_hamming PROPERTIES PASS_REGULAR_EXPRESSION "All Hamming tests passed")
