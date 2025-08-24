@@ -1,36 +1,9 @@
 #include "lora_fft_demod.h"
+#include "lora_utils.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <kiss_fft.h>
-
-static void build_upchirp(float complex *chirp, uint32_t id,
-                          uint8_t sf, uint32_t os_factor)
-{
-    double N = (double)(1u << sf);
-    uint32_t sps = (uint32_t)(N * os_factor);
-    int n_fold = (int)(sps - id * os_factor);
-    for (uint32_t n = 0; n < sps; ++n) {
-        double phase;
-        if ((int)n < n_fold)
-            phase = 2.0 * M_PI * ((double)n * (double)n / (2.0 * N * os_factor * os_factor) +
-                                  ((double)id / N - 0.5) * (double)n / os_factor);
-        else
-            phase = 2.0 * M_PI * ((double)n * (double)n / (2.0 * N * os_factor * os_factor) +
-                                  ((double)id / N - 1.5) * (double)n / os_factor);
-        chirp[n] = cexpf(I * (float)phase);
-    }
-}
-
-static void build_ref_chirps(float complex *upchirp, float complex *downchirp,
-                             uint8_t sf, uint32_t os_factor)
-{
-    uint32_t sps = (1u << sf) * os_factor;
-    build_upchirp(upchirp, 0, sf, os_factor);
-    for (uint32_t i = 0; i < sps; ++i) {
-        downchirp[i] = conjf(upchirp[i]);
-    }
-}
 
 void lora_fft_demod(const float complex *chips, uint32_t *symbols,
                     uint8_t sf, uint32_t samp_rate, uint32_t bw,
@@ -47,7 +20,7 @@ void lora_fft_demod(const float complex *chips, uint32_t *symbols,
         free(downchirp);
         return;
     }
-    build_ref_chirps(upchirp, downchirp, sf, os_factor);
+    lora_build_ref_chirps(upchirp, downchirp, sf, os_factor);
     free(upchirp);
 
     kiss_fft_cfg cfg = kiss_fft_alloc(sps, 0, NULL, NULL);
