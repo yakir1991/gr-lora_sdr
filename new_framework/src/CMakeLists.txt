@@ -8,6 +8,9 @@ target_include_directories(lora_data_source PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(lora_add_crc lora_add_crc.c)
 target_include_directories(lora_add_crc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+add_library(lora_payload_id lora_payload_id.c)
+target_include_directories(lora_payload_id PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_library(lora_whitening lora_whitening.c)
 target_include_directories(lora_whitening PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

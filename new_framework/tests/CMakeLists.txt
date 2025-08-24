@@ -16,6 +16,11 @@ target_link_libraries(test_lora_add_crc PRIVATE lora_add_crc)
 add_test(NAME test_lora_add_crc COMMAND test_lora_add_crc)
 set_tests_properties(test_lora_add_crc PROPERTIES PASS_REGULAR_EXPRESSION "All CRC tests passed")
 
+add_executable(test_lora_payload_id test_lora_payload_id.c)
+target_link_libraries(test_lora_payload_id PRIVATE lora_payload_id)
+add_test(NAME test_lora_payload_id COMMAND test_lora_payload_id)
+set_tests_properties(test_lora_payload_id PROPERTIES PASS_REGULAR_EXPRESSION "Payload ID test passed")
+
 add_executable(test_lora_whitening test_lora_whitening.c)
 target_link_libraries(test_lora_whitening PRIVATE lora_whitening)
 add_test(NAME test_lora_whitening COMMAND test_lora_whitening)
