@@ -25,3 +25,8 @@ add_executable(test_lora_hamming test_lora_hamming.c)
 target_link_libraries(test_lora_hamming PRIVATE lora_hamming)
 add_test(NAME test_lora_hamming COMMAND test_lora_hamming)
 set_tests_properties(test_lora_hamming PROPERTIES PASS_REGULAR_EXPRESSION "All Hamming tests passed")
+
+add_executable(test_lora_interleaver test_lora_interleaver.c)
+target_link_libraries(test_lora_interleaver PRIVATE lora_interleaver)
+add_test(NAME test_lora_interleaver COMMAND test_lora_interleaver)
+set_tests_properties(test_lora_interleaver PROPERTIES PASS_REGULAR_EXPRESSION "Interleaver test passed")
