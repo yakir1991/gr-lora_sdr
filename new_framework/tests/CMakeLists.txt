@@ -30,3 +30,8 @@ add_executable(test_lora_interleaver test_lora_interleaver.c)
 target_link_libraries(test_lora_interleaver PRIVATE lora_interleaver)
 add_test(NAME test_lora_interleaver COMMAND test_lora_interleaver)
 set_tests_properties(test_lora_interleaver PROPERTIES PASS_REGULAR_EXPRESSION "Interleaver test passed")
+
+add_executable(test_lora_graymap test_lora_graymap.c)
+target_link_libraries(test_lora_graymap PRIVATE lora_graymap)
+add_test(NAME test_lora_graymap COMMAND test_lora_graymap)
+set_tests_properties(test_lora_graymap PROPERTIES PASS_REGULAR_EXPRESSION "Gray map test passed")
