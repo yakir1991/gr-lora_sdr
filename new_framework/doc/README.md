@@ -4,14 +4,22 @@
 The new framework provides a dedicated space for experimental LoRa SDR extensions. It focuses on modular blocks and test utilities that enable rapid prototyping of alternative physical-layer ideas.
 
 ## Build Instructions
-1. From the repository root, configure a build directory:
+1. Configure and build the framework in an isolated directory:
    ```sh
-   mkdir build && cd build
-   cmake .. -DENABLE_NEW_FRAMEWORK=ON
-   make
+   rm -rf build/new_framework
+   mkdir -p build/new_framework
+   cd build/new_framework
+   cmake ../../new_framework
+   cmake --build .
    sudo make install
    ```
 2. After installation, the new framework blocks become available to GNU Radio just like the rest of the project.
+
+## Running Tests
+From the `build/new_framework` directory, run the framework's test suite:
+```sh
+ctest --output-on-failure
+```
 
 ## Third-Party Libraries
 The new framework relies on [liquid-dsp](https://github.com/jgaeddert/liquid-dsp) for digital signal processing utilities. The
