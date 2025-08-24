@@ -40,3 +40,8 @@ add_executable(test_lora_mod_fft test_lora_mod_fft.c)
 target_link_libraries(test_lora_mod_fft PRIVATE lora_mod lora_fft_demod m)
 add_test(NAME test_lora_mod_fft COMMAND test_lora_mod_fft)
 set_tests_properties(test_lora_mod_fft PROPERTIES PASS_REGULAR_EXPRESSION "Mod/demod round-trip passed")
+
+add_executable(test_lora_frame_sync test_lora_frame_sync.c)
+target_link_libraries(test_lora_frame_sync PRIVATE lora_frame_sync)
+add_test(NAME test_lora_frame_sync COMMAND test_lora_frame_sync)
+set_tests_properties(test_lora_frame_sync PROPERTIES PASS_REGULAR_EXPRESSION "Frame sync test passed")
