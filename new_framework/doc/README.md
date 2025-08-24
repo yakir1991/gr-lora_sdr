@@ -13,6 +13,20 @@ The new framework provides a dedicated space for experimental LoRa SDR extension
    ```
 2. After installation, the new framework blocks become available to GNU Radio just like the rest of the project.
 
+## Third-Party Libraries
+The new framework relies on [liquid-dsp](https://github.com/jgaeddert/liquid-dsp) for digital signal processing utilities. The
+library is pulled automatically during configuration using CMake's `FetchContent` mechanism; no manual download is required.
+
+To include `liquid-dsp` in your own modules, add the header and link against the `liquid` target:
+
+```c
+#include <liquid/liquid.h>
+```
+
+```cmake
+target_link_libraries(your_target PRIVATE liquid)
+```
+
 ## Test Output Processor
 The build copies `process_test_output.py` into the build directory. Use it to summarize results from simple text logs:
 
