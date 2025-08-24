@@ -44,3 +44,11 @@ target_include_directories(lora_frame_sync PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(hello_world hello_world.c)
 target_link_libraries(hello_world PRIVATE signal_utils)
+
+add_library(lora_tx_chain lora_tx_chain.c)
+target_include_directories(lora_tx_chain PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(lora_tx_chain PUBLIC lora_data_source lora_add_crc lora_whitening lora_mod m)
+
+add_library(lora_rx_chain lora_rx_chain.c)
+target_include_directories(lora_rx_chain PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(lora_rx_chain PUBLIC lora_add_crc lora_whitening lora_fft_demod m)
