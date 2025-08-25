@@ -25,8 +25,12 @@ FetchContent_MakeAvailable(liquid_dsp)
 include(CTest)
 enable_testing()
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/process_test_output.py
-               ${CMAKE_CURRENT_BINARY_DIR}/process_test_output.py COPYONLY)
+# Copy utility Python scripts into the build directory so they can be
+# executed without referring back to the source tree.
+foreach(script process_test_output.py inspect_symbols.py)
+  configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/${script}
+                 ${CMAKE_CURRENT_BINARY_DIR}/${script} COPYONLY)
+endforeach()
 
 add_subdirectory(src)
 add_subdirectory(tests)
