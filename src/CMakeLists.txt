@@ -6,8 +6,9 @@ add_library(lora_utils lora_utils.c)
 target_include_directories(lora_utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lora_utils PUBLIC m)
 
-add_library(lora_data_source lora_data_source.c)
-target_include_directories(lora_data_source PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_library(lora_io lora_io.c)
+target_include_directories(lora_io PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(lora_add_crc lora_add_crc.c)
 target_include_directories(lora_add_crc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -50,11 +51,11 @@ target_link_libraries(hello_world PRIVATE signal_utils)
 
 add_library(lora_tx_chain lora_tx_chain.c)
 target_include_directories(lora_tx_chain PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(lora_tx_chain PUBLIC lora_data_source lora_add_crc lora_whitening lora_mod m)
+target_link_libraries(lora_tx_chain PUBLIC lora_add_crc lora_whitening lora_mod m)
 
 add_library(lora_rx_chain lora_rx_chain.c)
 target_include_directories(lora_rx_chain PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lora_rx_chain PUBLIC lora_add_crc lora_whitening lora_fft_demod m)
 
 add_executable(lora_chain_runner lora_chain_runner.c)
-target_link_libraries(lora_chain_runner PRIVATE lora_tx_chain lora_rx_chain m)
+target_link_libraries(lora_chain_runner PRIVATE lora_tx_chain lora_rx_chain lora_io m)
