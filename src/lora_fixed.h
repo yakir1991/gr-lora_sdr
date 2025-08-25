@@ -3,8 +3,23 @@
 
 #ifdef LORA_LITE_FIXED_POINT
 #include <complex.h>
-#include <liquid/liquid.h>
 #include <stdint.h>
+
+#ifndef q15
+typedef int16_t q15;
+#endif
+
+static inline q15 liquid_float_to_fixed(float x) {
+  if (x > 0.999969f)
+    x = 0.999969f;
+  if (x < -1.0f)
+    x = -1.0f;
+  return (q15)(x * 32767.0f + (x >= 0 ? 0.5f : -0.5f));
+}
+
+static inline float liquid_fixed_to_float(q15 x) {
+  return (float)x / 32767.0f;
+}
 
 typedef struct {
   q15 r;
