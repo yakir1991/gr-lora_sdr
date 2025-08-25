@@ -42,7 +42,9 @@ add_test(NAME test_lora_graymap COMMAND test_lora_graymap)
 set_tests_properties(test_lora_graymap PROPERTIES PASS_REGULAR_EXPRESSION "Gray map test passed")
 
 add_executable(test_lora_mod_fft test_lora_mod_fft.c)
-target_link_libraries(test_lora_mod_fft PRIVATE lora_mod lora_fft_demod m)
+target_link_libraries(test_lora_mod_fft PRIVATE
+    lora_mod lora_fft_demod
+    $<$<NOT:$<BOOL:${LORA_LITE_FIXED_POINT}>>:m>)
 add_test(NAME test_lora_mod_fft COMMAND test_lora_mod_fft)
 set_tests_properties(test_lora_mod_fft PROPERTIES PASS_REGULAR_EXPRESSION "Mod/demod round-trip passed")
 
