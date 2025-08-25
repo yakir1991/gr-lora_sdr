@@ -1,5 +1,6 @@
 #include "lora_chain.h"
 #include <stdio.h>
+#include "lora_log.h"
 #include <complex.h>
 #include <math.h>
 #include <stdint.h>
@@ -22,7 +23,7 @@ static float rand_normal(void) {
 
 int main(int argc, char **argv) {
     if (argc != 3) {
-        fprintf(stderr, "Usage: %s <input_file> <output_bin>\n", argv[0]);
+        LORA_LOG_ERR("Usage: %s <input_file> <output_bin>", argv[0]);
         return 1;
     }
     const char *in_path = argv[1];
@@ -30,7 +31,7 @@ int main(int argc, char **argv) {
 
     FILE *fi = fopen(in_path, "rb");
     if (!fi) {
-        perror("fopen");
+        LORA_LOG_ERR("fopen failed for %s", in_path);
         return 1;
     }
     lora_io_t in_io;
@@ -65,7 +66,7 @@ int main(int argc, char **argv) {
 
     FILE *fo = fopen(out_path, "wb");
     if (!fo) {
-        perror("fopen");
+        LORA_LOG_ERR("fopen failed for %s", out_path);
         return 1;
     }
     lora_io_t out_io;

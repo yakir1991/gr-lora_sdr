@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "lora_log.h"
 #include "lora_interleaver.h"
 
 int main(void)
@@ -18,10 +19,10 @@ int main(void)
     lora_deinterleave(inter, output, sf, sf_app, cw_len);
 
     if (memcmp(input, output, sf_app) != 0) {
-        printf("Interleaver test failed\n");
+        LORA_LOG_INFO("Interleaver test failed");
         return 1;
     }
 
-    printf("Interleaver test passed\n");
+    LORA_LOG_INFO("Interleaver test passed");
     return 0;
 }

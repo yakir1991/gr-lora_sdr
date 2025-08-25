@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "lora_log.h"
 #include <stdint.h>
 #include <string.h>
 #include <complex.h>
@@ -11,7 +12,7 @@ int main(void)
     const char *in_path = "../../legacy_gr_lora_sdr/data/GRC_default/example_tx_source.txt";
     FILE *fi = fopen(in_path, "rb");
     if (!fi) {
-        perror("fopen input");
+        LORA_LOG_ERR("fopen input");
         return 1;
     }
     lora_io_t in_io;
@@ -29,14 +30,14 @@ int main(void)
     static float complex chips[LORA_MAX_CHIPS];
     size_t nchips = 0;
     if (lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips) != 0) {
-        fprintf(stderr, "lora_tx_chain failed\n");
+        LORA_LOG_ERR("lora_tx_chain failed");
         return 1;
     }
 
     const char *bin_path = "tx_capture.bin";
     FILE *fb = fopen(bin_path, "wb");
     if (!fb) {
-        perror("fopen bin");
+        LORA_LOG_ERR("fopen bin");
         return 1;
     }
     lora_io_t bin_io;
@@ -50,7 +51,7 @@ int main(void)
 
     fb = fopen(bin_path, "rb");
     if (!fb) {
-        perror("fopen bin read");
+        LORA_LOG_ERR("fopen bin read");
         return 1;
     }
     lora_io_init_file(&bin_io, fb);
@@ -65,7 +66,7 @@ int main(void)
     static uint8_t out[LORA_MAX_PAYLOAD_LEN];
     size_t out_len = 0;
     if (lora_rx_chain(rx_chips, nchips, out, sizeof(out), &out_len) != 0) {
-        fprintf(stderr, "lora_rx_chain failed\n");
+        LORA_LOG_ERR("lora_rx_chain failed");
         return 1;
     }
 
@@ -73,10 +74,10 @@ int main(void)
     remove(bin_path);
 
     if (ok) {
-        printf("End-to-end file test passed\n");
+        LORA_LOG_INFO("End-to-end file test passed");
         return 0;
     } else {
-        printf("End-to-end file test FAILED\n");
+        LORA_LOG_INFO("End-to-end file test FAILED");
         return 1;
     }
 }

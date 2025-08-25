@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "lora_log.h"
 #include "lora_whitening.h"
 
 int main(void)
@@ -13,10 +14,10 @@ int main(void)
     lora_dewhiten(whitened, dewhitened, len);
 
     if (memcmp(packet, dewhitened, len) != 0) {
-        printf("Whitening test failed\n");
+        LORA_LOG_INFO("Whitening test failed");
         return 1;
     }
 
-    printf("Whitening test passed\n");
+    LORA_LOG_INFO("Whitening test passed");
     return 0;
 }
