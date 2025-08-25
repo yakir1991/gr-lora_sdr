@@ -73,3 +73,24 @@ add_executable(test_full_chain_compare test_full_chain_compare.c)
 target_link_libraries(test_full_chain_compare PRIVATE lora_io)
 add_test(NAME full_chain_compare COMMAND test_full_chain_compare)
 set_tests_properties(full_chain_compare PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+set(LORA_LITE_TEST_TARGETS
+  test_signal_utils
+  test_lora_io
+  test_lora_add_crc
+  test_lora_payload_id
+  test_lora_whitening
+  test_lora_hamming
+  test_lora_interleaver
+  test_lora_graymap
+  test_lora_mod_fft
+  test_lora_frame_sync
+  test_lora_header
+  test_lora_chain
+  test_end_to_end_file
+  test_tx_rx_compare
+  test_full_chain_compare
+)
+foreach(t ${LORA_LITE_TEST_TARGETS})
+  target_compile_definitions(${t} PUBLIC $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+endforeach()
