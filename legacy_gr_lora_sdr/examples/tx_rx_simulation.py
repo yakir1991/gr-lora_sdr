@@ -18,6 +18,7 @@ from gnuradio.fft import window
 import sys
 import signal
 from argparse import ArgumentParser
+import os
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
 import gnuradio.lora_sdr as lora_sdr
@@ -75,7 +76,13 @@ class tx_rx_simulation(gr.top_block):
             block_tags=True)
         self.channels_channel_model_0.set_min_output_buffer((int(2**sf*samp_rate/bw*1.1)))
         self.blocks_throttle_0 = blocks.throttle(gr.sizeof_gr_complex*1, (samp_rate*10),True)
-        self.blocks_file_source_0_0 = blocks.file_source(gr.sizeof_char*1, '/home/jtappare/Documents/gr-lora_sdr/data/GRC_default/example_tx_source.txt', False, 0, 0)
+        self.blocks_file_source_0_0 = blocks.file_source(
+            gr.sizeof_char*1,
+            os.path.join(os.path.dirname(__file__), "..", "data", "GRC_default", "example_tx_source.txt"),
+            False,
+            0,
+            0,
+        )
         self.blocks_file_source_0_0.set_begin_tag(pmt.PMT_NIL)
 
 
