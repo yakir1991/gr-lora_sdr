@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(new_framework LANGUAGES C)
+project(lora_lite LANGUAGES C)
 
 include(FetchContent)
 
