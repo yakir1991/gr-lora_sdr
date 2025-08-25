@@ -67,3 +67,7 @@ target_link_libraries(test_end_to_end_file PRIVATE lora_tx_chain lora_rx_chain)
 add_executable(test_tx_rx_compare test_tx_rx_compare.c)
   add_test(NAME test_tx_rx_compare COMMAND test_tx_rx_compare)
   set_tests_properties(test_tx_rx_compare PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_executable(test_full_chain_compare test_full_chain_compare.c)
+add_test(NAME full_chain_compare COMMAND test_full_chain_compare)
+set_tests_properties(full_chain_compare PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
