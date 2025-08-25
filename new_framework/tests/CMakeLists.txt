@@ -54,3 +54,8 @@ add_executable(test_lora_header test_lora_header.c)
 target_link_libraries(test_lora_header PRIVATE lora_header)
 add_test(NAME test_lora_header COMMAND test_lora_header)
 set_tests_properties(test_lora_header PROPERTIES PASS_REGULAR_EXPRESSION "All header tests passed")
+
+add_executable(test_lora_chain test_lora_chain.c)
+target_link_libraries(test_lora_chain PRIVATE lora_tx_chain lora_rx_chain)
+add_test(NAME test_lora_chain COMMAND test_lora_chain)
+set_tests_properties(test_lora_chain PROPERTIES PASS_REGULAR_EXPRESSION "Payload recovered successfully")
