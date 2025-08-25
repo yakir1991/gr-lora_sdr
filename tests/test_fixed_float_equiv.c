@@ -1,0 +1,40 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <complex.h>
+#include "../src/lora_mod.h"
+#include "../src/lora_fft_demod.h"
+#include "../src/lora_config.h"
+
+int main(int argc, char **argv) {
+    const char *out_path = argc > 1 ? argv[1] : "out.bin";
+    const uint8_t sf = 7;
+    const uint32_t bw = 125000;
+    const uint32_t samp_rate = 125000;
+    const size_t nsym = 4;
+    const uint32_t symbols[4] = {0, 1, 2, 3};
+
+    float complex chips[nsym * (1u << sf)];
+    lora_modulate(symbols, chips, sf, samp_rate, bw, nsym);
+
+    uint32_t rec[4] = {0};
+    lora_fft_demod(chips, rec, sf, samp_rate, bw, 0.0f, nsym);
+    for (size_t i = 0; i < nsym; ++i) {
+        if (rec[i] != symbols[i]) {
+            fprintf(stderr, "Mismatch at %zu: %u != %u\n", i, rec[i], symbols[i]);
+            return 1;
+        }
+    }
+
+    FILE *f = fopen(out_path, "wb");
+    if (!f) {
+        perror("fopen");
+        return 1;
+    }
+    size_t written = fwrite(rec, sizeof(uint32_t), nsym, f);
+    fclose(f);
+    if (written != nsym) {
+        fprintf(stderr, "Short write\n");
+        return 1;
+    }
+    return 0;
+}
