@@ -2,8 +2,8 @@
 #include "lora_add_crc.h"
 #include "lora_whitening.h"
 #include "lora_mod.h"
-#include "lora_data_source.h"
 #include "lora_config.h"
+#include "lora_io.h"
 #include <string.h>
 
 int lora_tx_chain(const uint8_t *payload, size_t payload_len,
@@ -49,38 +49,27 @@ int lora_tx_chain(const uint8_t *payload, size_t payload_len,
     return 0;
 }
 
-int lora_tx_run(const char *file_in, const char *bin_out)
+int lora_tx_run(lora_io_t *in, lora_io_t *out)
 {
-    lora_data_source_t src;
-    if (lora_data_source_open(&src, file_in) != 0)
+    if (!in || !out)
         return -1;
-    fseek(src.fp, 0, SEEK_END);
-    long flen = ftell(src.fp);
-    rewind(src.fp);
-    if (flen < 0) {
-        lora_data_source_close(&src);
-        return -1;
-    }
-    if ((size_t)flen > LORA_MAX_PAYLOAD_LEN) {
-        lora_data_source_close(&src);
-        return -1;
-    }
+
     uint8_t payload[LORA_MAX_PAYLOAD_LEN];
-    size_t rd = lora_data_source_read(&src, payload, (size_t)flen);
-    lora_data_source_close(&src);
-    if (rd != (size_t)flen)
-        return -1;
+    size_t total = 0;
+    while (total < LORA_MAX_PAYLOAD_LEN) {
+        size_t n = in->read(in->ctx, payload + total, LORA_MAX_PAYLOAD_LEN - total);
+        if (n == 0)
+            break;
+        total += n;
+    }
 
     float complex chips[LORA_MAX_CHIPS];
     size_t nchips;
-    if (lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips) != 0)
+    if (lora_tx_chain(payload, total, chips, LORA_MAX_CHIPS, &nchips) != 0)
         return -1;
 
-    FILE *fo = fopen(bin_out, "wb");
-    if (!fo)
-        return -1;
-    fwrite(chips, sizeof(float complex), nchips, fo);
-    fclose(fo);
-    return 0;
+    size_t bytes = nchips * sizeof(float complex);
+    size_t wr = out->write(out->ctx, (const uint8_t *)chips, bytes);
+    return (wr == bytes) ? 0 : -1;
 }
 

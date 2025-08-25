@@ -1,20 +1,21 @@
 #include <stdio.h>
 #include <string.h>
-#include "lora_data_source.h"
+#include "lora_io.h"
 
 int main(void) {
     const char *path = "../../legacy_gr_lora_sdr/data/GRC_default/example_tx_source.txt";
-    lora_data_source_t src;
-    if(lora_data_source_open(&src, path) != 0) {
-        perror("lora_data_source_open");
+    FILE *fp = fopen(path, "rb");
+    if(!fp) {
+        perror("fopen");
         return 1;
     }
-
+    lora_io_t io;
+    lora_io_init_file(&io, fp);
     unsigned char buf1[4096];
-    size_t n1 = lora_data_source_read(&src, buf1, sizeof(buf1));
-    lora_data_source_close(&src);
+    size_t n1 = io.read(io.ctx, buf1, sizeof(buf1));
+    fclose(fp);
 
-    FILE *fp = fopen(path, "rb");
+    fp = fopen(path, "rb");
     if(!fp) {
         perror("fopen");
         return 1;

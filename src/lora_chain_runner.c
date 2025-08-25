@@ -33,22 +33,17 @@ int main(int argc, char **argv) {
         perror("fopen");
         return 1;
     }
-    fseek(fi, 0, SEEK_END);
-    long flen = ftell(fi);
-    rewind(fi);
-    if (flen < 0) {
-        fclose(fi);
-        return 1;
-    }
-    if ((size_t)flen > LORA_MAX_PAYLOAD_LEN) {
-        fclose(fi);
-        return 1;
-    }
+    lora_io_t in_io;
+    lora_io_init_file(&in_io, fi);
     uint8_t payload[LORA_MAX_PAYLOAD_LEN];
-    size_t rd = fread(payload, 1, (size_t)flen, fi);
+    size_t rd = 0;
+    while (rd < LORA_MAX_PAYLOAD_LEN) {
+        size_t n = in_io.read(in_io.ctx, payload + rd, LORA_MAX_PAYLOAD_LEN - rd);
+        if (n == 0)
+            break;
+        rd += n;
+    }
     fclose(fi);
-    if (rd != (size_t)flen)
-        return 1;
 
     float complex chips[LORA_MAX_CHIPS];
     size_t nchips;
@@ -73,7 +68,12 @@ int main(int argc, char **argv) {
         perror("fopen");
         return 1;
     }
-    fwrite(out_payload, 1, out_len, fo);
+    lora_io_t out_io;
+    lora_io_init_file(&out_io, fo);
+    if (out_io.write(out_io.ctx, out_payload, out_len) != out_len) {
+        fclose(fo);
+        return 1;
+    }
     fclose(fo);
     return 0;
 }

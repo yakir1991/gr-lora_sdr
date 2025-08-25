@@ -4,6 +4,7 @@
 #include <complex.h>
 #include "lora_chain.h"
 #include "lora_config.h"
+#include "lora_io.h"
 
 int main(void)
 {
@@ -13,25 +14,17 @@ int main(void)
         perror("fopen input");
         return 1;
     }
-    if (fseek(fi, 0, SEEK_END) != 0) {
-        fclose(fi);
-        return 1;
-    }
-    long flen = ftell(fi);
-    if (flen < 0) {
-        fclose(fi);
-        return 1;
-    }
-    rewind(fi);
-    if ((size_t)flen > LORA_MAX_PAYLOAD_LEN) {
-        fclose(fi);
-        return 1;
-    }
+    lora_io_t in_io;
+    lora_io_init_file(&in_io, fi);
     static uint8_t payload[LORA_MAX_PAYLOAD_LEN];
-    size_t rd = fread(payload, 1, (size_t)flen, fi);
+    size_t rd = 0;
+    while (rd < LORA_MAX_PAYLOAD_LEN) {
+        size_t n = in_io.read(in_io.ctx, payload + rd, LORA_MAX_PAYLOAD_LEN - rd);
+        if (n == 0)
+            break;
+        rd += n;
+    }
     fclose(fi);
-    if (rd != (size_t)flen)
-        return 1;
 
     static float complex chips[LORA_MAX_CHIPS];
     size_t nchips = 0;
@@ -46,7 +39,13 @@ int main(void)
         perror("fopen bin");
         return 1;
     }
-    fwrite(chips, sizeof(float complex), nchips, fb);
+    lora_io_t bin_io;
+    lora_io_init_file(&bin_io, fb);
+    if (bin_io.write(bin_io.ctx, (const uint8_t *)chips,
+                     nchips * sizeof(float complex)) != nchips * sizeof(float complex)) {
+        fclose(fb);
+        return 1;
+    }
     fclose(fb);
 
     fb = fopen(bin_path, "rb");
@@ -54,9 +53,12 @@ int main(void)
         perror("fopen bin read");
         return 1;
     }
+    lora_io_init_file(&bin_io, fb);
     static float complex rx_chips[LORA_MAX_CHIPS];
-    size_t rdchips = fread(rx_chips, sizeof(float complex), nchips, fb);
+    size_t rdbytes = bin_io.read(bin_io.ctx, (uint8_t *)rx_chips,
+                                 nchips * sizeof(float complex));
     fclose(fb);
+    size_t rdchips = rdbytes / sizeof(float complex);
     if (rdchips != nchips)
         return 1;
 
