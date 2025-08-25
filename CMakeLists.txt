@@ -4,8 +4,21 @@ cmake_minimum_required(VERSION 3.12)
 project(lora_lite LANGUAGES C)
 
 option(LORA_LITE_FIXED_POINT "Use fixed-point math in LoRa Lite" OFF)
-if(LORA_LITE_FIXED_POINT)
-  find_package(liquid-dsp REQUIRED)
+option(USE_SYSTEM_LIQUID_DSP "Use system or submodule liquid-dsp instead of FetchContent" OFF)
+option(BUILD_SHARED_LIBS "Build libraries as shared" ON)
+option(LORA_LITE_STATIC "Build static library artifacts" OFF)
+
+if(LORA_LITE_STATIC)
+  set(BUILD_SHARED_LIBS OFF)
+endif()
+
+if(USE_SYSTEM_LIQUID_DSP)
+  # Prefer an in-tree submodule if present; fall back to a system search.
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/liquid-dsp/CMakeLists.txt)
+    add_subdirectory(liquid-dsp)
+  else()
+    find_package(liquid-dsp REQUIRED)
+  endif()
 else()
   include(FetchContent)
 
