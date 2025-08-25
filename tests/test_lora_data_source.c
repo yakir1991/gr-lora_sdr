@@ -4,15 +4,15 @@
 
 int main(void) {
     const char *path = "../../legacy_gr_lora_sdr/data/GRC_default/example_tx_source.txt";
-    lora_data_source_t *src = lora_data_source_open(path);
-    if(!src) {
+    lora_data_source_t src;
+    if(lora_data_source_open(&src, path) != 0) {
         perror("lora_data_source_open");
         return 1;
     }
 
     unsigned char buf1[4096];
-    size_t n1 = lora_data_source_read(src, buf1, sizeof(buf1));
-    lora_data_source_close(src);
+    size_t n1 = lora_data_source_read(&src, buf1, sizeof(buf1));
+    lora_data_source_close(&src);
 
     FILE *fp = fopen(path, "rb");
     if(!fp) {

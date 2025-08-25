@@ -1,8 +1,9 @@
 #include "lora_fft_demod.h"
 #include "lora_utils.h"
+#include "lora_config.h"
 #include <math.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdalign.h>
 #include <kiss_fft.h>
 
 void lora_fft_demod(const float complex *chips, uint32_t *symbols,
@@ -12,27 +13,24 @@ void lora_fft_demod(const float complex *chips, uint32_t *symbols,
     uint32_t n_bins = 1u << sf;
     uint32_t os_factor = samp_rate / bw;
     uint32_t sps = n_bins * os_factor;
-
-    float complex *upchirp = (float complex *)malloc(sps * sizeof(float complex));
-    float complex *downchirp = (float complex *)malloc(sps * sizeof(float complex));
-    if (!upchirp || !downchirp) {
-        free(upchirp);
-        free(downchirp);
+    if (sps > LORA_MAX_SPS)
         return;
-    }
+
+    float complex upchirp[LORA_MAX_SPS];
+    float complex downchirp[LORA_MAX_SPS];
     lora_build_ref_chirps(upchirp, downchirp, sf, os_factor);
-    free(upchirp);
 
-    kiss_fft_cfg cfg = kiss_fft_alloc(sps, 0, NULL, NULL);
-    kiss_fft_cpx *cx_in = (kiss_fft_cpx *)malloc(sps * sizeof(kiss_fft_cpx));
-    kiss_fft_cpx *cx_out = (kiss_fft_cpx *)malloc(sps * sizeof(kiss_fft_cpx));
-    if (!cfg || !cx_in || !cx_out) {
-        free(cfg);
-        free(cx_in);
-        free(cx_out);
-        free(downchirp);
+    kiss_fft_cpx cx_in[LORA_MAX_SPS];
+    kiss_fft_cpx cx_out[LORA_MAX_SPS];
+
+    size_t cfg_sz = 0;
+    kiss_fft_alloc(sps, 0, NULL, &cfg_sz);
+    if (cfg_sz > LORA_KISSFFT_CFG_MAX)
         return;
-    }
+    alignas(16) unsigned char cfg_buf[LORA_KISSFFT_CFG_MAX];
+    kiss_fft_cfg cfg = kiss_fft_alloc(sps, 0, cfg_buf, &cfg_sz);
+    if (!cfg)
+        return;
 
     for (size_t s = 0; s < nsym; ++s) {
         const float complex *symchips = &chips[s * sps];
@@ -58,9 +56,4 @@ void lora_fft_demod(const float complex *chips, uint32_t *symbols,
         }
         symbols[s] = (max_idx / os_factor) & (n_bins - 1u);
     }
-
-    free(cfg);
-    free(cx_in);
-    free(cx_out);
-    free(downchirp);
 }

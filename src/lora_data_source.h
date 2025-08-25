@@ -12,10 +12,10 @@ typedef struct {
     FILE *fp;
 } lora_data_source_t;
 
-/* Open a file for reading. Returns NULL on failure. */
-lora_data_source_t *lora_data_source_open(const char *filename);
+/* Initialize a data source with caller-provided storage. */
+int lora_data_source_open(lora_data_source_t *src, const char *filename);
 
-/* Close and free resources. */
+/* Close but do not free the struct. */
 void lora_data_source_close(lora_data_source_t *src);
 
 /* Read up to len bytes into buf. Returns number of bytes read. */
