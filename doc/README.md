@@ -118,6 +118,17 @@ Run the compiled test directly to inspect intermediate files:
 ./build/tests/test_end_to_end_file
 ```
 
+### Embedded Loopback Test
+A fixed-point regression test mimics an embedded deployment by using
+static buffers and avoiding file I/O. Configure the project with
+`-DLORA_LITE_FIXED_POINT=ON`, build, then run:
+
+```sh
+ctest -R embedded_loopback --output-on-failure
+```
+
+On success the test prints `Embedded loopback test passed`.
+
 ### GNURadio Comparison
 Two binaries capture end‑to‑end payload recovery through GNU Radio and the
 standalone C framework.  Regenerate them and verify equality with the test

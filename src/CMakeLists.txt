@@ -2,15 +2,13 @@ add_library(signal_utils signal_utils.c)
 target_include_directories(signal_utils PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include/lora_lite>)
-target_link_libraries(signal_utils PUBLIC
-    $<$<NOT:$<BOOL:${LORA_LITE_FIXED_POINT}>>:m>)
+target_link_libraries(signal_utils PUBLIC m)
 
 add_library(lora_utils lora_utils.c)
 target_include_directories(lora_utils PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include/lora_lite>)
-target_link_libraries(lora_utils PUBLIC
-    $<$<NOT:$<BOOL:${LORA_LITE_FIXED_POINT}>>:m>)
+target_link_libraries(lora_utils PUBLIC m)
 if(LORA_LITE_FIXED_POINT)
   target_link_libraries(lora_utils PUBLIC liquid)
 endif()
@@ -56,9 +54,7 @@ add_library(lora_mod lora_mod.c)
 target_include_directories(lora_mod PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include/lora_lite>)
-target_link_libraries(lora_mod PUBLIC
-    lora_utils
-    $<$<NOT:$<BOOL:${LORA_LITE_FIXED_POINT}>>:m>)
+target_link_libraries(lora_mod PUBLIC lora_utils m)
 
 # Path to legacy sources used by the FFT demodulator
 set(LEGACY_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../legacy_gr_lora_sdr/lib)
@@ -68,9 +64,7 @@ target_include_directories(lora_fft_demod PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${LEGACY_LIB_DIR}>
   $<INSTALL_INTERFACE:include/lora_lite>)
-target_link_libraries(lora_fft_demod PUBLIC
-    lora_utils
-    $<$<NOT:$<BOOL:${LORA_LITE_FIXED_POINT}>>:m>)
+target_link_libraries(lora_fft_demod PUBLIC lora_utils m)
 
 add_library(lora_header lora_header.c)
 target_include_directories(lora_header PUBLIC
@@ -89,22 +83,16 @@ add_library(lora_tx_chain lora_tx_chain.c)
 target_include_directories(lora_tx_chain PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include/lora_lite>)
-target_link_libraries(lora_tx_chain PUBLIC
-    lora_add_crc lora_whitening lora_mod
-    $<$<NOT:$<BOOL:${LORA_LITE_FIXED_POINT}>>:m>)
+target_link_libraries(lora_tx_chain PUBLIC lora_add_crc lora_whitening lora_mod m)
 
 add_library(lora_rx_chain lora_rx_chain.c)
 target_include_directories(lora_rx_chain PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include/lora_lite>)
-target_link_libraries(lora_rx_chain PUBLIC
-    lora_add_crc lora_whitening lora_fft_demod
-    $<$<NOT:$<BOOL:${LORA_LITE_FIXED_POINT}>>:m>)
+target_link_libraries(lora_rx_chain PUBLIC lora_add_crc lora_whitening lora_fft_demod m)
 
 add_executable(lora_chain_runner lora_chain_runner.c)
-target_link_libraries(lora_chain_runner PRIVATE
-    lora_tx_chain lora_rx_chain lora_io
-    $<$<NOT:$<BOOL:${LORA_LITE_FIXED_POINT}>>:m>)
+target_link_libraries(lora_chain_runner PRIVATE lora_tx_chain lora_rx_chain lora_io m)
 
 set(LORA_LITE_LIBS
   signal_utils

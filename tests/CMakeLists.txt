@@ -99,6 +99,12 @@ lora_add_test(test_lora_chain
   LIBS lora_tx_chain lora_rx_chain
   PASS_REGEX "Payload recovered successfully")
 
+lora_add_test(embedded_loopback
+  SOURCES embedded_loopback.c
+  LIBS lora_tx_chain lora_rx_chain
+  DEFINITIONS LORA_LITE_FIXED_POINT
+  PASS_REGEX "Embedded loopback test passed")
+
 lora_add_test(test_end_to_end_file
   SOURCES test_end_to_end_file.c
   LIBS lora_tx_chain lora_rx_chain lora_io
