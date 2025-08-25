@@ -13,6 +13,11 @@ if(LORA_LITE_STATIC)
 endif()
 
 option(LORA_LITE_ENABLE_LOGGING "Enable logging output" ON)
+option(LORA_LITE_BENCHMARK "Build benchmark harnesses" OFF)
+
+if(LORA_LITE_BENCHMARK)
+  add_compile_options(-O3 -DNDEBUG)
+endif()
 
 if(USE_SYSTEM_LIQUID_DSP)
   # Prefer an in-tree submodule if present; fall back to a system search.
