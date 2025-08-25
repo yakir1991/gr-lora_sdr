@@ -1,82 +1,74 @@
 # New Framework
 
-## Project Goals
-The new framework provides a dedicated space for experimental LoRa SDR extensions. It focuses on modular blocks and test utilities that enable rapid prototyping of alternative physical-layer ideas.
+## Introduction
+The new framework is a sandbox for experimenting with LoRa® software-defined radio
+components. It exposes small, self-contained C modules and corresponding tests so
+researchers can prototype alternative physical-layer ideas without impacting the
+rest of the project. Typical use cases include trying new modulation schemes,
+evaluating signal processing utilities, or validating end‑to‑end transmission
+concepts.
 
-## Build Instructions
-1. Configure and build the framework in an isolated directory:
+## Installation and Build
+### Prerequisites
+- CMake ≥ 3.12
+- A C compiler such as GCC
+- GNU Make
+- Python 3 (for utility scripts)
+
+### Steps
+1. Configure the project:
    ```sh
-   rm -rf build/new_framework
-   mkdir -p build/new_framework
-   cd build/new_framework
-   cmake ../../new_framework
-   cmake --build .
-   sudo make install
+   cmake -S new_framework -B build/new_framework
    ```
-2. After installation, the new framework blocks become available to GNU Radio just like the rest of the project.
+2. Compile the sources:
+   ```sh
+   cmake --build build/new_framework
+   ```
+3. Run the test suite:
+   ```sh
+   ctest --test-dir build/new_framework --output-on-failure
+   ```
+4. (Optional) install the modules into your system:
+   ```sh
+   sudo cmake --install build/new_framework
+   ```
 
-## Running Tests
-From the `build/new_framework` directory, run the framework's test suite:
+## Example Usage
+### Hello World
+After building, execute the sample program:
 ```sh
-ctest --output-on-failure
+./build/new_framework/hello_world
 ```
 
-## End-to-End File Example
-An automated test verifies that a file can be transmitted through the full LoRa chain.
-It uses `data/GRC_default/example_tx_source.txt` as the payload, converts it to LoRa
-chips with `lora_tx_chain`, stores the chips to a temporary binary file, and then
-decodes them with `lora_rx_chain` to confirm the original text is recovered.
-
-Run the test after building:
+### End-to-End File Example
+An automated test demonstrates the transmit‑and‑receive chain using `lora_tx_chain`
+and `lora_rx_chain`. It converts `data/GRC_default/example_tx_source.txt` into LoRa
+chips, stores them in `tx_capture.bin`, then decodes the file to verify the
+payload:
 
 ```sh
 ctest -R test_end_to_end_file --output-on-failure
 ```
 
-To examine the process manually, execute the test binary directly:
+Run the compiled test directly to inspect intermediate files:
 
 ```sh
-./tests/test_end_to_end_file
+./build/new_framework/tests/test_end_to_end_file
 ```
 
-The program will create `tx_capture.bin`, perform the round trip, and delete the
-temporary file after verifying success.
+### Utility Scripts
+The build copies helper scripts next to the binaries:
 
-## Third-Party Libraries
-The new framework relies on [liquid-dsp](https://github.com/jgaeddert/liquid-dsp) for digital signal processing utilities. The
-library is pulled automatically during configuration using CMake's `FetchContent` mechanism; no manual download is required.
+- `process_test_output.py` — summarize `PASS`/`FAIL` logs
+- `inspect_symbols.py` — plot complex sample dumps such as `tx_capture.bin`
 
-To include `liquid-dsp` in your own modules, add the header and link against the `liquid` target:
-
-```c
-#include <liquid/liquid.h>
-```
-
-```cmake
-target_link_libraries(your_target PRIVATE liquid)
-```
-
-## Test Output Processor
-The build copies `process_test_output.py` into the build directory. Use it to summarize results from simple text logs:
-
-```sh
-python3 process_test_output.py <path/to/test_output.txt>
-```
-
-Each log line should contain a test name followed by `PASS` or `FAIL`, and the script prints a summary of the counts.
-
-## Symbol Dump Inspector
-Tests such as `test_end_to_end_file` write intermediate complex samples to a
-binary file (`tx_capture.bin`).  After building, the utility scripts are copied
-to the build directory, allowing quick visualization of these dumps:
-
-```sh
-python3 inspect_symbols.py tx_capture.bin -o symbols.png
-```
-
-The script loads the `complex64` values and plots the real and imaginary parts
-with `matplotlib`.  Omitting `-o` displays the plot interactively instead of
-writing an image.
+## Credits
+Portions of the modules originated from the
+[`gr-lora_sdr`](https://github.com/daniestevez/gr-lora_sdr) project and the
+framework relies on [liquid-dsp](https://github.com/jgaeddert/liquid-dsp) for
+digital signal processing utilities.
 
 ## Citation
-If this framework contributes to your research, please cite the work referenced in [`CITATION.cff`](../../CITATION.cff).
+If this framework contributes to your research, please cite the work referenced
+in [`CITATION.cff`](../../CITATION.cff).
+
