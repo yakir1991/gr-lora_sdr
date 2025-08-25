@@ -65,5 +65,18 @@ python3 process_test_output.py <path/to/test_output.txt>
 
 Each log line should contain a test name followed by `PASS` or `FAIL`, and the script prints a summary of the counts.
 
+## Symbol Dump Inspector
+Tests such as `test_end_to_end_file` write intermediate complex samples to a
+binary file (`tx_capture.bin`).  After building, the utility scripts are copied
+to the build directory, allowing quick visualization of these dumps:
+
+```sh
+python3 inspect_symbols.py tx_capture.bin -o symbols.png
+```
+
+The script loads the `complex64` values and plots the real and imaginary parts
+with `matplotlib`.  Omitting `-o` displays the plot interactively instead of
+writing an image.
+
 ## Citation
 If this framework contributes to your research, please cite the work referenced in [`CITATION.cff`](../../CITATION.cff).
