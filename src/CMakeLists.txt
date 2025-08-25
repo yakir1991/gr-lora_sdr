@@ -55,3 +55,6 @@ target_link_libraries(lora_tx_chain PUBLIC lora_data_source lora_add_crc lora_wh
 add_library(lora_rx_chain lora_rx_chain.c)
 target_include_directories(lora_rx_chain PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lora_rx_chain PUBLIC lora_add_crc lora_whitening lora_fft_demod m)
+
+add_executable(lora_chain_runner lora_chain_runner.c)
+target_link_libraries(lora_chain_runner PRIVATE lora_tx_chain lora_rx_chain m)

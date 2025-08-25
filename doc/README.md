@@ -84,20 +84,31 @@ Run the compiled test directly to inspect intermediate files:
 ```
 
 ### GNURadio Comparison
-To compare lora_lite with the GNURadio reference flowgraph, generate both outputs and run the comparison test:
+Two binaries capture end‑to‑end payload recovery through GNU Radio and the
+standalone C framework.  Regenerate them and verify equality with the test
+suite:
 
-1. Build the reference with GNURadio:
-```sh
-PYTHONPATH=build/python LD_LIBRARY_PATH=build/lib python examples/tx_rx_simulation.py > gnuradio_out.bin
-```
-2. Produce the lora_lite output:
-```sh
-./build/tests/test_end_to_end_file > framework_out.bin
-```
-3. Execute the comparison test:
-```sh
-ctest -R test_tx_rx_compare --test-dir build --output-on-failure
-```
+1. Use `grcc` to turn the legacy flowgraph into a Python script and run it with
+   deterministic AWGN to create `legacy_gr_lora_sdr/gnuradio_ref.bin`:
+   ```sh
+   grcc legacy_gr_lora_sdr/examples/tx_rx_simulation.grc -o legacy_gr_lora_sdr
+   python legacy_gr_lora_sdr/tx_rx_simulation.py  # produces gnuradio_ref.bin
+   ```
+2. Build the native executable and run it with the same input and noise seed to
+   produce `legacy_gr_lora_sdr/framework_ref.bin`:
+   ```sh
+   cmake -S . -B build && cmake --build build
+   ./build/src/lora_chain_runner \
+     legacy_gr_lora_sdr/data/GRC_default/example_tx_source.txt \
+     legacy_gr_lora_sdr/framework_ref.bin
+   ```
+3. Compare the results byte‑for‑byte:
+   ```sh
+   ctest -R full_chain_compare --test-dir build --output-on-failure
+   ```
+
+Both flows rely on seeded noise sources to remain deterministic across
+platforms.
 
 ### Utility Scripts
 The build copies helper scripts next to the binaries:
