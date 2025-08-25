@@ -31,6 +31,8 @@ project but deliberately diverges in several ways:
 - `lora_lite/` – core modular library and tests
 - `legacy_gr_lora_sdr/` – archived GNU Radio implementation kept for reference
 
+Developers seeking the original GNU Radio out-of-tree module can find it unmodified in [`legacy_gr_lora_sdr/`](../legacy_gr_lora_sdr/).
+
 ## Installation and Build
 ### Prerequisites
 - CMake ≥ 3.12
