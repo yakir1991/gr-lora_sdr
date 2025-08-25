@@ -56,6 +56,22 @@ Run the compiled test directly to inspect intermediate files:
 ./build/new_framework/tests/test_end_to_end_file
 ```
 
+### GNURadio Comparison
+To compare the C framework with the GNURadio reference flowgraph, generate both outputs and run the comparison test:
+
+1. Build the reference with GNURadio:
+```sh
+PYTHONPATH=build/python LD_LIBRARY_PATH=build/lib python examples/tx_rx_simulation.py > gnuradio_out.bin
+```
+2. Produce the framework output:
+```sh
+./build/new_framework/tests/test_end_to_end_file > framework_out.bin
+```
+3. Execute the comparison test:
+```sh
+ctest -R test_tx_rx_compare --test-dir build/new_framework --output-on-failure
+```
+
 ### Utility Scripts
 The build copies helper scripts next to the binaries:
 
