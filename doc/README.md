@@ -1,7 +1,7 @@
-# New Framework
+# lora_lite
 
 ## Introduction
-The new framework is a sandbox for experimenting with LoRa® software-defined radio
+lora_lite is a sandbox for experimenting with LoRa® software-defined radio
 components. It exposes small, self-contained C modules and corresponding tests so
 researchers can prototype alternative physical-layer ideas without impacting the
 rest of the project. Typical use cases include trying new modulation schemes,
@@ -10,7 +10,7 @@ concepts.
 
 ## Differences from gr-lora_sdr
 
-The new framework evolved from the [gr-lora_sdr](https://github.com/daniestevez/gr-lora_sdr)
+lora_lite evolved from the [gr-lora_sdr](https://github.com/daniestevez/gr-lora_sdr)
 project but deliberately diverges in several ways:
 
 - **Standalone C implementation** – all signal-processing blocks are written in
@@ -36,26 +36,26 @@ project but deliberately diverges in several ways:
 ### Steps
 1. Configure the project:
    ```sh
-   cmake -S new_framework -B build/new_framework
+   cmake -S . -B build
    ```
 2. Compile the sources:
    ```sh
-   cmake --build build/new_framework
+   cmake --build build
    ```
 3. Run the test suite:
    ```sh
-   ctest --test-dir build/new_framework --output-on-failure
+   ctest --test-dir build --output-on-failure
    ```
 4. (Optional) install the modules into your system:
    ```sh
-   sudo cmake --install build/new_framework
+   sudo cmake --install build
    ```
 
 ## Example Usage
 ### Hello World
 After building, execute the sample program:
 ```sh
-./build/new_framework/hello_world
+./build/hello_world
 ```
 
 ### End-to-End File Example
@@ -71,7 +71,7 @@ ctest -R test_end_to_end_file --output-on-failure
 Run the compiled test directly to inspect intermediate files:
 
 ```sh
-./build/new_framework/tests/test_end_to_end_file
+./build/tests/test_end_to_end_file
 ```
 
 ### GNURadio Comparison
@@ -83,11 +83,11 @@ PYTHONPATH=build/python LD_LIBRARY_PATH=build/lib python examples/tx_rx_simulati
 ```
 2. Produce the framework output:
 ```sh
-./build/new_framework/tests/test_end_to_end_file > framework_out.bin
+./build/tests/test_end_to_end_file > framework_out.bin
 ```
 3. Execute the comparison test:
 ```sh
-ctest -R test_tx_rx_compare --test-dir build/new_framework --output-on-failure
+ctest -R test_tx_rx_compare --test-dir build --output-on-failure
 ```
 
 ### Utility Scripts
@@ -104,5 +104,5 @@ digital signal processing utilities.
 
 ## Citation
 If this framework contributes to your research, please cite the work referenced
-in [`CITATION.cff`](../../CITATION.cff).
+in [`CITATION.cff`](../CITATION.cff).
 
