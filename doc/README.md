@@ -60,6 +60,41 @@ From the `lora_lite/` directory:
    sudo cmake --install build
    ```
 
+## Embedded Platforms
+
+Cross-compiling enables lora_lite on resource‑constrained MCUs. The build relies on
+[`liquid-dsp`](https://github.com/jgaeddert/liquid-dsp) for DSP primitives and will
+fetch and compile the library for the target automatically.
+
+### Cross-compilation
+
+Use the provided toolchain file to target an ARM Cortex‑M class device:
+
+```sh
+cmake -S . -B build-arm \
+  -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm-none-eabi.cmake \
+  -DLORA_LITE_FIXED_POINT=ON \
+  -DLORA_LITE_ENABLE_LOGGING=OFF \
+  -DBUILD_SHARED_LIBS=OFF
+cmake --build build-arm
+```
+
+### Memory Considerations
+
+- Enable `LORA_LITE_FIXED_POINT` to avoid floating‑point operations.
+- Disable logging via `LORA_LITE_ENABLE_LOGGING` to save flash and RAM.
+- Build static libraries (`BUILD_SHARED_LIBS=OFF`) to simplify bare‑metal
+  deployment.
+- Only include the modules you need to keep the binary size minimal.
+
+### Optional Features
+
+Other CMake switches tailor the build for embedded use:
+
+- `LORA_LITE_STATIC` – produce static library artifacts.
+- `USE_SYSTEM_LIQUID_DSP` – link against a prebuilt `liquid-dsp` instead of
+  fetching it.
+
 ## Example Usage
 ### Hello World
 After building, execute the sample program:
@@ -115,12 +150,37 @@ The build copies helper scripts next to the binaries:
 
 - `process_test_output.py` — summarize `PASS`/`FAIL` logs
 - `inspect_symbols.py` — plot complex sample dumps such as `tx_capture.bin`
+ 
+## Callback-based I/O and Logging APIs
 
-## Credits
+`lora_io.h` exposes a callback structure so applications can route I/O through
+files, UARTs, or custom transports:
+
+```c
+#include "lora_io.h"
+
+lora_io_t io;
+FILE *fp = fopen("input.bin", "rb");
+lora_io_init_file(&io, fp);
+io.read(io.ctx, buffer, sizeof buffer);
+```
+
+Logging macros in `lora_log.h` provide lightweight printf‑style diagnostics.
+Define `LORA_LITE_ENABLE_LOGGING` at compile time to activate them or override
+`LORA_LOG_PRINTF` to redirect output:
+
+```c
+#include "lora_log.h"
+
+LORA_LOG_INFO("Received %u bytes", count);
+```
+
+## Credits and Licensing
 Portions of the modules originated from the
-[`gr-lora_sdr`](https://github.com/daniestevez/gr-lora_sdr) project and lora_lite
-relies on [liquid-dsp](https://github.com/jgaeddert/liquid-dsp) for digital
-signal processing utilities.
+[`gr-lora_sdr`](https://github.com/daniestevez/gr-lora_sdr) project (GPLv3).
+The project integrates [`liquid-dsp`](https://github.com/jgaeddert/liquid-dsp),
+which is distributed under the MIT license. See [`LICENSE`](../LICENSE) for the
+terms governing lora_lite itself.
 
 ## Citation
 If lora_lite contributes to your research, please cite the work referenced in
