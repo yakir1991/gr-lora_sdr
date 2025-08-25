@@ -1,3 +1,9 @@
+# legacy_gr_lora_sdr
+
+This directory preserves the original GNU Radio LoRa SDR module from the `gr-lora_sdr` project. It is included alongside `lora_lite` for reference, and the source code remains otherwise unmodified. The upstream README follows.
+
+---
+
 ![GitHub last commit](https://img.shields.io/github/last-commit/tapparelj/gr-lora_sdr)
 ![gnuradio](https://img.shields.io/badge/GNU%20Radio-3.10.11-important)
 ![version](https://img.shields.io/badge/Version-0.5.8-brightgreen)
