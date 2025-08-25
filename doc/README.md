@@ -19,12 +19,17 @@ project but deliberately diverges in several ways:
 - **Modular block structure** – each component is an independent module with its
   own tests. This contrasts with gr-lora_sdr’s monolithic GNU Radio flowgraph
   where blocks are primarily exercised within the full pipeline.
-- **Simplified build system** – the framework uses only CMake and CTest instead
-  of GNU Radio’s out‑of‑tree module infrastructure, resulting in a quicker setup
+- **Simplified build system** – lora_lite uses only CMake and CTest instead of
+  GNU Radio’s out‑of‑tree module infrastructure, resulting in a quicker setup
   and easier CI integration.
 - **Current limitations** – the focus on self‑contained modules means features
   such as real‑time streaming and hardware radio drivers, present in
   gr-lora_sdr, are not yet exposed.
+
+## Repository Layout
+
+- `lora_lite/` – core modular library and tests
+- `legacy_gr_lora_sdr/` – archived GNU Radio implementation kept for reference
 
 ## Installation and Build
 ### Prerequisites
@@ -34,6 +39,8 @@ project but deliberately diverges in several ways:
 - Python 3 (for utility scripts)
 
 ### Steps
+From the `lora_lite/` directory:
+
 1. Configure the project:
    ```sh
    cmake -S . -B build
@@ -75,13 +82,13 @@ Run the compiled test directly to inspect intermediate files:
 ```
 
 ### GNURadio Comparison
-To compare the C framework with the GNURadio reference flowgraph, generate both outputs and run the comparison test:
+To compare lora_lite with the GNURadio reference flowgraph, generate both outputs and run the comparison test:
 
 1. Build the reference with GNURadio:
 ```sh
 PYTHONPATH=build/python LD_LIBRARY_PATH=build/lib python examples/tx_rx_simulation.py > gnuradio_out.bin
 ```
-2. Produce the framework output:
+2. Produce the lora_lite output:
 ```sh
 ./build/tests/test_end_to_end_file > framework_out.bin
 ```
@@ -98,11 +105,11 @@ The build copies helper scripts next to the binaries:
 
 ## Credits
 Portions of the modules originated from the
-[`gr-lora_sdr`](https://github.com/daniestevez/gr-lora_sdr) project and the
-framework relies on [liquid-dsp](https://github.com/jgaeddert/liquid-dsp) for
-digital signal processing utilities.
+[`gr-lora_sdr`](https://github.com/daniestevez/gr-lora_sdr) project and lora_lite
+relies on [liquid-dsp](https://github.com/jgaeddert/liquid-dsp) for digital
+signal processing utilities.
 
 ## Citation
-If this framework contributes to your research, please cite the work referenced
-in [`CITATION.cff`](../CITATION.cff).
+If lora_lite contributes to your research, please cite the work referenced in
+[`CITATION.cff`](../CITATION.cff).
 
