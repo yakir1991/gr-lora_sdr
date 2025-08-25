@@ -1,6 +1,5 @@
 #include "lora_chain.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <complex.h>
 #include <math.h>
 #include <stdint.h>
@@ -41,25 +40,20 @@ int main(int argc, char **argv) {
         fclose(fi);
         return 1;
     }
-    uint8_t *payload = (uint8_t *)malloc((size_t)flen);
-    if (!payload) {
+    if ((size_t)flen > LORA_MAX_PAYLOAD_LEN) {
         fclose(fi);
         return 1;
     }
+    uint8_t payload[LORA_MAX_PAYLOAD_LEN];
     size_t rd = fread(payload, 1, (size_t)flen, fi);
     fclose(fi);
-    if (rd != (size_t)flen) {
-        free(payload);
+    if (rd != (size_t)flen)
         return 1;
-    }
 
-    float complex *chips;
+    float complex chips[LORA_MAX_CHIPS];
     size_t nchips;
-    if (lora_tx_chain(payload, rd, &chips, &nchips) != 0) {
-        free(payload);
+    if (lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips) != 0)
         return 1;
-    }
-    free(payload);
 
     const float snr_db = 30.0f;
     float noise_voltage = powf(10.0f, -snr_db / 20.0f);
@@ -69,22 +63,17 @@ int main(int argc, char **argv) {
         chips[i] += nre + I * nim;
     }
 
-    uint8_t *out_payload;
+    uint8_t out_payload[LORA_MAX_PAYLOAD_LEN];
     size_t out_len;
-    if (lora_rx_chain(chips, nchips, &out_payload, &out_len) != 0) {
-        free(chips);
+    if (lora_rx_chain(chips, nchips, out_payload, sizeof(out_payload), &out_len) != 0)
         return 1;
-    }
-    free(chips);
 
     FILE *fo = fopen(out_path, "wb");
     if (!fo) {
-        free(out_payload);
         perror("fopen");
         return 1;
     }
     fwrite(out_payload, 1, out_len, fo);
     fclose(fo);
-    free(out_payload);
     return 0;
 }

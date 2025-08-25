@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 #include <complex.h>
 #include "lora_chain.h"
+#include "lora_config.h"
 
 int main(void)
 {
@@ -23,22 +23,19 @@ int main(void)
         return 1;
     }
     rewind(fi);
-    uint8_t *payload = (uint8_t *)malloc((size_t)flen);
-    if (!payload) {
+    if ((size_t)flen > LORA_MAX_PAYLOAD_LEN) {
         fclose(fi);
         return 1;
     }
+    static uint8_t payload[LORA_MAX_PAYLOAD_LEN];
     size_t rd = fread(payload, 1, (size_t)flen, fi);
     fclose(fi);
-    if (rd != (size_t)flen) {
-        free(payload);
+    if (rd != (size_t)flen)
         return 1;
-    }
 
-    float complex *chips = NULL;
+    static float complex chips[LORA_MAX_CHIPS];
     size_t nchips = 0;
-    if (lora_tx_chain(payload, rd, &chips, &nchips) != 0) {
-        free(payload);
+    if (lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips) != 0) {
         fprintf(stderr, "lora_tx_chain failed\n");
         return 1;
     }
@@ -47,47 +44,30 @@ int main(void)
     FILE *fb = fopen(bin_path, "wb");
     if (!fb) {
         perror("fopen bin");
-        free(payload);
-        free(chips);
         return 1;
     }
     fwrite(chips, sizeof(float complex), nchips, fb);
     fclose(fb);
-    free(chips);
 
     fb = fopen(bin_path, "rb");
     if (!fb) {
         perror("fopen bin read");
-        free(payload);
         return 1;
     }
-    float complex *rx_chips = (float complex *)malloc(nchips * sizeof(float complex));
-    if (!rx_chips) {
-        fclose(fb);
-        free(payload);
-        return 1;
-    }
+    static float complex rx_chips[LORA_MAX_CHIPS];
     size_t rdchips = fread(rx_chips, sizeof(float complex), nchips, fb);
     fclose(fb);
-    if (rdchips != nchips) {
-        free(rx_chips);
-        free(payload);
+    if (rdchips != nchips)
         return 1;
-    }
 
-    uint8_t *out = NULL;
+    static uint8_t out[LORA_MAX_PAYLOAD_LEN];
     size_t out_len = 0;
-    if (lora_rx_chain(rx_chips, nchips, &out, &out_len) != 0) {
-        free(rx_chips);
-        free(payload);
+    if (lora_rx_chain(rx_chips, nchips, out, sizeof(out), &out_len) != 0) {
         fprintf(stderr, "lora_rx_chain failed\n");
         return 1;
     }
-    free(rx_chips);
 
     int ok = (out_len == rd) && (memcmp(out, payload, rd) == 0);
-    free(out);
-    free(payload);
     remove(bin_path);
 
     if (ok) {

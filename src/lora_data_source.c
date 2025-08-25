@@ -1,16 +1,13 @@
 #include "lora_data_source.h"
-#include <stdlib.h>
 #include <string.h>
 
-lora_data_source_t *lora_data_source_open(const char *filename) {
-    lora_data_source_t *src = (lora_data_source_t*)malloc(sizeof(lora_data_source_t));
-    if(!src) return NULL;
+int lora_data_source_open(lora_data_source_t *src, const char *filename) {
+    if(!src) return -1;
     src->fp = fopen(filename, "rb");
     if(!src->fp) {
-        free(src);
-        return NULL;
+        return -1;
     }
-    return src;
+    return 0;
 }
 
 void lora_data_source_close(lora_data_source_t *src) {
@@ -18,7 +15,7 @@ void lora_data_source_close(lora_data_source_t *src) {
     if(src->fp) {
         fclose(src->fp);
     }
-    free(src);
+    src->fp = NULL;
 }
 
 size_t lora_data_source_read(lora_data_source_t *src, unsigned char *buf, size_t len) {

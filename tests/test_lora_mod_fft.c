@@ -14,8 +14,7 @@ int main(void)
     const uint32_t symbols[4] = {0, 1, 2, 3};
 
     uint32_t sps = (1u << sf);
-    float complex *chips = malloc(nsym * sps * sizeof(float complex));
-    if (!chips) return 1;
+    float complex chips[nsym * (1u << sf)];
 
     lora_modulate(symbols, chips, sf, samp_rate, bw, nsym);
 
@@ -25,8 +24,6 @@ int main(void)
     for (size_t i = 0; i < nsym; ++i) {
         assert(rec[i] == symbols[i]);
     }
-
-    free(chips);
     printf("Mod/demod round-trip passed\n");
     return 0;
 }
