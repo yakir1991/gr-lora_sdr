@@ -5,6 +5,9 @@ target_link_libraries(signal_utils PUBLIC m)
 add_library(lora_utils lora_utils.c)
 target_include_directories(lora_utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lora_utils PUBLIC m)
+if(LORA_LITE_FIXED_POINT)
+  target_link_libraries(lora_utils PUBLIC liquid)
+endif()
 
 
 add_library(lora_io lora_io.c)
@@ -59,3 +62,26 @@ target_link_libraries(lora_rx_chain PUBLIC lora_add_crc lora_whitening lora_fft_
 
 add_executable(lora_chain_runner lora_chain_runner.c)
 target_link_libraries(lora_chain_runner PRIVATE lora_tx_chain lora_rx_chain lora_io m)
+
+set(LORA_LITE_TARGETS
+  signal_utils
+  lora_utils
+  lora_io
+  lora_add_crc
+  lora_payload_id
+  lora_whitening
+  lora_hamming
+  lora_interleaver
+  lora_graymap
+  lora_mod
+  lora_fft_demod
+  lora_header
+  lora_frame_sync
+  hello_world
+  lora_tx_chain
+  lora_rx_chain
+  lora_chain_runner
+)
+foreach(t ${LORA_LITE_TARGETS})
+  target_compile_definitions(${t} PUBLIC $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+endforeach()
