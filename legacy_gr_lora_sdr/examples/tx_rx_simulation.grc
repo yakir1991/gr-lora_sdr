@@ -198,7 +198,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/jtappare/Documents/gr-lora_sdr/data/GRC_default/example_tx_source.txt
+    file: ../data/GRC_default/example_tx_source.txt
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
