@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <complex.h>
+#include "lora_log.h"
 #include "../src/lora_mod.h"
 #include "../src/lora_fft_demod.h"
 #include "../src/lora_config.h"
@@ -20,20 +21,20 @@ int main(int argc, char **argv) {
     lora_fft_demod(chips, rec, sf, samp_rate, bw, 0.0f, nsym);
     for (size_t i = 0; i < nsym; ++i) {
         if (rec[i] != symbols[i]) {
-            fprintf(stderr, "Mismatch at %zu: %u != %u\n", i, rec[i], symbols[i]);
+            LORA_LOG_ERR("Mismatch at %zu: %u != %u", i, rec[i], symbols[i]);
             return 1;
         }
     }
 
     FILE *f = fopen(out_path, "wb");
     if (!f) {
-        perror("fopen");
+        LORA_LOG_ERR("fopen");
         return 1;
     }
     size_t written = fwrite(rec, sizeof(uint32_t), nsym, f);
     fclose(f);
     if (written != nsym) {
-        fprintf(stderr, "Short write\n");
+        LORA_LOG_ERR("Short write");
         return 1;
     }
     return 0;

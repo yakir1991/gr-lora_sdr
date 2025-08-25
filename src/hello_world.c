@@ -1,6 +1,7 @@
 #include <stdio.h>
+#include "lora_log.h"
 
 int main(void) {
-    printf("Hello, world!\n");
+    LORA_LOG_INFO("Hello, world!");
     return 0;
 }

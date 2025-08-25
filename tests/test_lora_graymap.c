@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include "lora_log.h"
 #include "lora_graymap.h"
 
 int main(void)
@@ -51,6 +52,6 @@ int main(void)
         assert(rec == i);
     }
 
-    printf("Gray map test passed\n");
+    LORA_LOG_INFO("Gray map test passed");
     return 0;
 }

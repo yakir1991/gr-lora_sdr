@@ -12,6 +12,8 @@ if(LORA_LITE_STATIC)
   set(BUILD_SHARED_LIBS OFF)
 endif()
 
+option(LORA_LITE_ENABLE_LOGGING "Enable logging output" ON)
+
 if(USE_SYSTEM_LIQUID_DSP)
   # Prefer an in-tree submodule if present; fall back to a system search.
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/liquid-dsp/CMakeLists.txt)

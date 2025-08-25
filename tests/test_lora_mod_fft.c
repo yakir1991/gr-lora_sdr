@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "lora_log.h"
 #include <complex.h>
 #include "lora_mod.h"
 #include "lora_fft_demod.h"
@@ -24,6 +25,6 @@ int main(void)
     for (size_t i = 0; i < nsym; ++i) {
         assert(rec[i] == symbols[i]);
     }
-    printf("Mod/demod round-trip passed\n");
+    LORA_LOG_INFO("Mod/demod round-trip passed");
     return 0;
 }

@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <string.h>
+#include "lora_log.h"
 #include "lora_io.h"
 
 int main(void) {
     const char *path = "../../legacy_gr_lora_sdr/data/GRC_default/example_tx_source.txt";
     FILE *fp = fopen(path, "rb");
     if(!fp) {
-        perror("fopen");
+        LORA_LOG_ERR("fopen");
         return 1;
     }
     lora_io_t io;
@@ -17,7 +18,7 @@ int main(void) {
 
     fp = fopen(path, "rb");
     if(!fp) {
-        perror("fopen");
+        LORA_LOG_ERR("fopen");
         return 1;
     }
     unsigned char buf2[4096];
@@ -26,10 +27,10 @@ int main(void) {
 
     int ok = (n1 == n2) && (memcmp(buf1, buf2, n1) == 0);
     if(ok) {
-        printf("Read %zu bytes successfully\n", n1);
+        LORA_LOG_INFO("Read %zu bytes successfully", n1);
         return 0;
     } else {
-        printf("Mismatch between data source and file\n");
+        LORA_LOG_INFO("Mismatch between data source and file");
         return 1;
     }
 }

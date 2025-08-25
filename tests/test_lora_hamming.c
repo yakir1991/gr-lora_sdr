@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include "lora_log.h"
 #include "lora_hamming.h"
 
 int main(void)
@@ -28,7 +29,7 @@ int main(void)
         }
     }
 
-    printf("All Hamming tests passed\n");
+    LORA_LOG_INFO("All Hamming tests passed");
     return 0;
 }
 

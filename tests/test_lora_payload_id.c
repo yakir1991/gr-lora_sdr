@@ -1,6 +1,7 @@
 #include "lora_payload_id.h"
 #include <stdio.h>
 #include <string.h>
+#include "lora_log.h"
 
 int main(void)
 {
@@ -12,13 +13,13 @@ int main(void)
 
     lora_payload_id_next(&ctx, base, out, sizeof(out));
     if (strcmp(out, "Seq: 1") != 0) {
-        printf("First increment failed: %s\n", out);
+        LORA_LOG_INFO("First increment failed: %s", out);
         return 1;
     }
 
     lora_payload_id_next(&ctx, base, out, sizeof(out));
     if (strcmp(out, "Seq: 2") != 0) {
-        printf("Second increment failed: %s\n", out);
+        LORA_LOG_INFO("Second increment failed: %s", out);
         return 1;
     }
 
@@ -27,11 +28,11 @@ int main(void)
 
     lora_payload_id_next(&ctx, base, out, sizeof(out));
     if (strcmp(out, "Seq: 0") != 0) {
-        printf("Wrap-around failed: %s\n", out);
+        LORA_LOG_INFO("Wrap-around failed: %s", out);
         return 1;
     }
 
-    printf("Payload ID test passed\n");
+    LORA_LOG_INFO("Payload ID test passed");
     return 0;
 }
 
