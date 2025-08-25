@@ -161,6 +161,38 @@ The build copies helper scripts next to the binaries:
 
 - `process_test_output.py` — summarize `PASS`/`FAIL` logs
 - `inspect_symbols.py` — plot complex sample dumps such as `tx_capture.bin`
+
+## Benchmarking
+
+Build the TX→RX benchmark with:
+
+```sh
+cmake -S . -B build -DLORA_LITE_BENCHMARK=ON
+cmake --build build
+ctest --test-dir build -R bench_lora_chain
+```
+
+The run produces `bench_results.csv` in the build tree containing cycle
+counts, peak heap usage, and packet throughput. Summarize and compare files
+with the helper script:
+
+```sh
+python analyze_bench.py build/tests/bench_results.csv
+```
+
+To target a microcontroller, add a toolchain file:
+
+```sh
+cmake -S . -B build-arm -DLORA_LITE_BENCHMARK=ON \
+  -DCMAKE_TOOLCHAIN_FILE=../toolchain-arm-none-eabi.cmake \
+  -DLORA_LITE_FIXED_POINT=ON -DLORA_LITE_ENABLE_LOGGING=OFF \
+  -DBUILD_SHARED_LIBS=OFF
+cmake --build build-arm
+```
+
+Run the resulting `bench_lora_chain` binary on hardware and copy back its CSV
+output. Use `analyze_bench.py --threshold 0.2` on multiple CSV files to flag
+host/embedded deviations beyond the chosen tolerance.
  
 ## Callback-based I/O and Logging APIs
 
