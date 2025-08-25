@@ -7,7 +7,7 @@
 
 int main(void)
 {
-    const char *in_path = "../../../data/GRC_default/example_tx_source.txt";
+    const char *in_path = "../../legacy_gr_lora_sdr/data/GRC_default/example_tx_source.txt";
     FILE *fi = fopen(in_path, "rb");
     if (!fi) {
         perror("fopen input");

@@ -3,8 +3,8 @@
 #include <string.h>
 
 int main(void) {
-    const char *path1 = "../../../gnuradio_out.bin";
-    const char *path2 = "../../../framework_out.bin";
+    const char *path1 = "../../legacy_gr_lora_sdr/gnuradio_out.bin";
+    const char *path2 = "../../legacy_gr_lora_sdr/framework_out.bin";
     FILE *f1 = fopen(path1, "rb");
     FILE *f2 = fopen(path2, "rb");
     if (!f1 || !f2) {

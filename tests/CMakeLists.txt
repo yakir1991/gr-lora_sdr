@@ -8,8 +8,8 @@ set_tests_properties(test_signal_utils PROPERTIES PASS_REGULAR_EXPRESSION "RMS: 
 
 add_executable(test_lora_data_source test_lora_data_source.c)
 target_link_libraries(test_lora_data_source PRIVATE lora_data_source)
-add_test(NAME test_lora_data_source COMMAND test_lora_data_source)
-set_tests_properties(test_lora_data_source PROPERTIES PASS_REGULAR_EXPRESSION "Read [0-9]+ bytes successfully")
+  add_test(NAME test_lora_data_source COMMAND test_lora_data_source)
+  set_tests_properties(test_lora_data_source PROPERTIES PASS_REGULAR_EXPRESSION "Read [0-9]+ bytes successfully" WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(test_lora_add_crc test_lora_add_crc.c)
 target_link_libraries(test_lora_add_crc PRIVATE lora_add_crc)
@@ -62,7 +62,8 @@ set_tests_properties(test_lora_chain PROPERTIES PASS_REGULAR_EXPRESSION "Payload
 
 add_executable(test_end_to_end_file test_end_to_end_file.c)
 target_link_libraries(test_end_to_end_file PRIVATE lora_tx_chain lora_rx_chain)
-add_test(NAME test_end_to_end_file COMMAND test_end_to_end_file)
-set_tests_properties(test_end_to_end_file PROPERTIES PASS_REGULAR_EXPRESSION "End-to-end file test passed")
+  add_test(NAME test_end_to_end_file COMMAND test_end_to_end_file)
+  set_tests_properties(test_end_to_end_file PROPERTIES PASS_REGULAR_EXPRESSION "End-to-end file test passed" WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 add_executable(test_tx_rx_compare test_tx_rx_compare.c)
-add_test(NAME test_tx_rx_compare COMMAND test_tx_rx_compare)
+  add_test(NAME test_tx_rx_compare COMMAND test_tx_rx_compare)
+  set_tests_properties(test_tx_rx_compare PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})

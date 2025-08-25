@@ -3,7 +3,7 @@
 #include "lora_data_source.h"
 
 int main(void) {
-    const char *path = "../../../data/GRC_default/example_tx_source.txt";
+    const char *path = "../../legacy_gr_lora_sdr/data/GRC_default/example_tx_source.txt";
     lora_data_source_t *src = lora_data_source_open(path);
     if(!src) {
         perror("lora_data_source_open");

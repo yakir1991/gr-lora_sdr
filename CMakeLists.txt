@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
+# Build lora_lite as the primary project
 project(lora_lite LANGUAGES C)
 
 include(FetchContent)

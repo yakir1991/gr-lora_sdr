@@ -32,8 +32,11 @@ add_library(lora_mod lora_mod.c)
 target_include_directories(lora_mod PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lora_mod PUBLIC m lora_utils)
 
-add_library(lora_fft_demod lora_fft_demod.c ../legacy_gr_lora_sdr/lib/kiss_fft.c)
-target_include_directories(lora_fft_demod PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ../legacy_gr_lora_sdr/lib)
+# Path to legacy sources used by the FFT demodulator
+set(LEGACY_LIB_DIR ../legacy_gr_lora_sdr/lib)
+
+add_library(lora_fft_demod lora_fft_demod.c ${LEGACY_LIB_DIR}/kiss_fft.c)
+target_include_directories(lora_fft_demod PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${LEGACY_LIB_DIR})
 target_link_libraries(lora_fft_demod PUBLIC m lora_utils)
 
 add_library(lora_header lora_header.c)
