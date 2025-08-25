@@ -8,6 +8,24 @@ rest of the project. Typical use cases include trying new modulation schemes,
 evaluating signal processing utilities, or validating end‑to‑end transmission
 concepts.
 
+## Differences from gr-lora_sdr
+
+The new framework evolved from the [gr-lora_sdr](https://github.com/daniestevez/gr-lora_sdr)
+project but deliberately diverges in several ways:
+
+- **Standalone C implementation** – all signal-processing blocks are written in
+  portable C without a dependency on GNU Radio, reducing external requirements
+  and easing integration in small environments.
+- **Modular block structure** – each component is an independent module with its
+  own tests. This contrasts with gr-lora_sdr’s monolithic GNU Radio flowgraph
+  where blocks are primarily exercised within the full pipeline.
+- **Simplified build system** – the framework uses only CMake and CTest instead
+  of GNU Radio’s out‑of‑tree module infrastructure, resulting in a quicker setup
+  and easier CI integration.
+- **Current limitations** – the focus on self‑contained modules means features
+  such as real‑time streaming and hardware radio drivers, present in
+  gr-lora_sdr, are not yet exposed.
+
 ## Installation and Build
 ### Prerequisites
 - CMake ≥ 3.12
