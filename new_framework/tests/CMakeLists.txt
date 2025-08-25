@@ -59,3 +59,8 @@ add_executable(test_lora_chain test_lora_chain.c)
 target_link_libraries(test_lora_chain PRIVATE lora_tx_chain lora_rx_chain)
 add_test(NAME test_lora_chain COMMAND test_lora_chain)
 set_tests_properties(test_lora_chain PROPERTIES PASS_REGULAR_EXPRESSION "Payload recovered successfully")
+
+add_executable(test_end_to_end_file test_end_to_end_file.c)
+target_link_libraries(test_end_to_end_file PRIVATE lora_tx_chain lora_rx_chain)
+add_test(NAME test_end_to_end_file COMMAND test_end_to_end_file)
+set_tests_properties(test_end_to_end_file PROPERTIES PASS_REGULAR_EXPRESSION "End-to-end file test passed")

@@ -21,6 +21,27 @@ From the `build/new_framework` directory, run the framework's test suite:
 ctest --output-on-failure
 ```
 
+## End-to-End File Example
+An automated test verifies that a file can be transmitted through the full LoRa chain.
+It uses `data/GRC_default/example_tx_source.txt` as the payload, converts it to LoRa
+chips with `lora_tx_chain`, stores the chips to a temporary binary file, and then
+decodes them with `lora_rx_chain` to confirm the original text is recovered.
+
+Run the test after building:
+
+```sh
+ctest -R test_end_to_end_file --output-on-failure
+```
+
+To examine the process manually, execute the test binary directly:
+
+```sh
+./tests/test_end_to_end_file
+```
+
+The program will create `tx_capture.bin`, perform the round trip, and delete the
+temporary file after verifying success.
+
 ## Third-Party Libraries
 The new framework relies on [liquid-dsp](https://github.com/jgaeddert/liquid-dsp) for digital signal processing utilities. The
 library is pulled automatically during configuration using CMake's `FetchContent` mechanism; no manual download is required.
