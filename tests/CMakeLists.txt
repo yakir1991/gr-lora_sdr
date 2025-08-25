@@ -76,6 +76,41 @@ target_link_libraries(test_full_chain_compare PRIVATE lora_io)
 add_test(NAME full_chain_compare COMMAND test_full_chain_compare)
 set_tests_properties(full_chain_compare PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+add_executable(test_fixed_float_float
+  test_fixed_float_equiv.c
+  ../src/lora_mod.c
+  ../src/lora_fft_demod.c
+  ../src/lora_utils.c
+  ../legacy_gr_lora_sdr/lib/kiss_fft.c)
+target_include_directories(test_fixed_float_float PRIVATE ../src ../legacy_gr_lora_sdr/lib ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(test_fixed_float_float PRIVATE m)
+
+add_executable(test_fixed_float_fixed
+  test_fixed_float_equiv.c
+  ../src/lora_mod.c
+  ../src/lora_fft_demod.c
+  ../src/lora_utils.c
+  ../legacy_gr_lora_sdr/lib/kiss_fft.c)
+target_include_directories(test_fixed_float_fixed PRIVATE ../src ../legacy_gr_lora_sdr/lib ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(test_fixed_float_fixed PRIVATE LORA_LITE_FIXED_POINT)
+target_link_libraries(test_fixed_float_fixed PRIVATE m)
+
+add_test(NAME run_fixed_float_float
+  COMMAND test_fixed_float_float ${CMAKE_CURRENT_BINARY_DIR}/float.bin)
+set_tests_properties(run_fixed_float_float PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME run_fixed_float_fixed
+  COMMAND test_fixed_float_fixed ${CMAKE_CURRENT_BINARY_DIR}/fixed.bin)
+set_tests_properties(run_fixed_float_fixed PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME compare_fixed_float
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/compare_fixed_float.sh
+          ${CMAKE_CURRENT_BINARY_DIR}/float.bin
+          ${CMAKE_CURRENT_BINARY_DIR}/fixed.bin)
+set_tests_properties(compare_fixed_float PROPERTIES
+  DEPENDS "run_fixed_float_float;run_fixed_float_fixed"
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
 set(LORA_LITE_TEST_TARGETS
   test_signal_utils
   test_lora_io
