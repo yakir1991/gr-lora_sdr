@@ -1,5 +1,8 @@
 #include "lora_fft_demod.h"
 #include "lora_fft_demod_ctx.h"
+#ifdef LORA_LITE_USE_LIQUID_FFT
+#include <liquid/liquid.h>
+#endif
 #include <stdlib.h>
 
 /* Thin wrapper that preserves the historic API while internally using the

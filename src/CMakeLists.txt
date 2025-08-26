@@ -1,3 +1,5 @@
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
 add_library(signal_utils signal_utils.c)
 target_include_directories(signal_utils PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -60,13 +62,14 @@ target_link_libraries(lora_mod PUBLIC lora_utils m)
 set(LEGACY_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../legacy_gr_lora_sdr/lib)
 
 if(LORA_LITE_USE_LIQUID_FFT)
+  find_package(Liquid REQUIRED)
   add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c)
   target_include_directories(lora_fft_demod PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include/lora_lite>
-    $<$<NOT:$<BOOL:${USE_SYSTEM_LIQUID_DSP}>>:${liquid_dsp_SOURCE_DIR}/include>)
-  target_link_libraries(lora_fft_demod PUBLIC lora_utils m liquid)
-  target_compile_definitions(lora_fft_demod PUBLIC LORA_LITE_LIQUID_FFT)
+    $<INSTALL_INTERFACE:include/lora_lite>)
+  target_link_libraries(lora_fft_demod PUBLIC lora_utils m)
+  target_link_libraries(lora_fft_demod PRIVATE Liquid::liquid)
+  target_compile_definitions(lora_fft_demod PUBLIC LORA_LITE_LIQUID_FFT LORA_LITE_USE_LIQUID_FFT)
 else()
   add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c ${LEGACY_LIB_DIR}/kiss_fft.c)
   target_include_directories(lora_fft_demod PUBLIC
