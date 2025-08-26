@@ -136,6 +136,11 @@ lora_add_test(test_end_to_end_file
   PASS_REGEX "End-to-end file test passed"
   WORKING_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
+lora_add_test(test_ber_snr
+  SOURCES test_ber_snr.c
+  LIBS lora_tx_chain lora_rx_chain
+  WORKING_DIR ${CMAKE_SOURCE_DIR})
+
 lora_add_test(test_tx_rx_compare
   SOURCES test_tx_rx_compare.c
   LIBS lora_io
