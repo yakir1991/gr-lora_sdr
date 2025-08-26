@@ -105,6 +105,18 @@ cmake -S . -B build-emb -C cmake/embedded_profile.cmake \
 cmake --build build-emb -j"$(nproc)"
 ```
 
+### Fixed-point throughput preset
+
+For maximum packets-per-second on embedded targets, combine fixed-point and
+throughput flags:
+
+```bash
+cmake -S . -B build-emb-o3 -C cmake/embedded_profile.cmake \
+      -DLORA_LITE_FIXED_POINT=ON -DLORA_LITE_EMB_THROUGHPUT=ON -DBUILD_TESTING=ON
+cmake --build build-emb-o3 -j"$(nproc)"
+./build-emb-o3/tests/bench_lora_chain bench_fixed_o3.csv
+```
+
 ### FFT Matrix Benchmark (KISS vs Liquid)
 ```bash
 ./scripts/bench_matrix.sh
@@ -114,7 +126,13 @@ cmake --build build-emb -j"$(nproc)"
 
 ### Performance Guard (catch regressions)
 - Default thresholds live in `bench/targets.json`.
-- You can override per-run:
+- Fixed-point thresholds are provided in `bench/targets.fixed.json`.
+- To check a benchmark run against the fixed thresholds, copy or symlink the
+  desired file to `bench/targets.json` and run:
+```bash
+./scripts/bench_guard.py bench_out/<timestamp>
+```
+- You can also override thresholds per-run:
 ```bash
 MIN_PPS_OFF=12000 MIN_PPS_ON=12000 MIN_RATIO=0.97 \
   ./scripts/bench_guard.py bench_out/<timestamp>
@@ -151,7 +169,8 @@ LATEST_DIR=$(ls -1d bench_out/* | tail -n1)
 ./scripts/bench_compare.py "$LATEST_DIR"
 ```
 
-Guard thresholds for embedded live in `bench/targets.json`:
+Guard thresholds for embedded live in `bench/targets.json` (see
+`bench/targets.fixed.json` for fixed-point runs):
 ```json
 { "min_pps_off": 8500.0, "min_pps_on": 9600.0, "min_ratio_on_over_off": 1.06 }
 ```
