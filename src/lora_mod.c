@@ -1,6 +1,7 @@
 #include "lora_mod.h"
 #include "lora_config.h"
 #include "lora_utils.h"
+#include "lora_log.h"
 #include <math.h>
 #include <string.h>
 
@@ -8,6 +9,11 @@
 
 void lora_modulate(const uint32_t *symbols, float complex *chips, uint8_t sf,
                    uint32_t samp_rate, uint32_t bw, size_t nsym) {
+  uint32_t rem = samp_rate % bw;
+  if (rem) {
+    LORA_LOG_WARN("fs %u not multiple of bw %u (rem %u)", samp_rate, bw, rem);
+    return;
+  }
   uint32_t n_bins = 1u << sf;
   uint32_t os_factor = samp_rate / bw;
   uint32_t sps = n_bins * os_factor;
@@ -30,6 +36,11 @@ void lora_modulate(const uint32_t *symbols, float complex *chips, uint8_t sf,
 
 void lora_modulate(const uint32_t *symbols, float complex *chips, uint8_t sf,
                    uint32_t samp_rate, uint32_t bw, size_t nsym) {
+  uint32_t rem = samp_rate % bw;
+  if (rem) {
+    LORA_LOG_WARN("fs %u not multiple of bw %u (rem %u)", samp_rate, bw, rem);
+    return;
+  }
   uint32_t n_bins = 1u << sf;
   uint32_t os_factor = samp_rate / bw;
   uint32_t sps = n_bins * os_factor;

@@ -1,5 +1,6 @@
 #include "lora_fft_demod_ctx.h"
 #include "lora_utils.h"
+#include "lora_log.h"
 #include <math.h>
 #include <stdalign.h>
 #include <stdint.h>
@@ -16,6 +17,11 @@ static inline unsigned char *align_ptr(unsigned char *p, size_t a) {
 }
 
 size_t lora_fft_workspace_bytes(uint8_t sf, uint32_t fs, uint32_t bw) {
+  uint32_t rem = fs % bw;
+  if (rem) {
+    LORA_LOG_WARN("fs %u not multiple of bw %u (rem %u)", fs, bw, rem);
+    return 0;
+  }
   uint32_t n_bins = 1u << sf;
   uint32_t os_factor = fs / bw;
   uint32_t sps = n_bins * os_factor;
@@ -43,6 +49,12 @@ int lora_fft_init(lora_fft_ctx_t *ctx, uint8_t sf, uint32_t fs, uint32_t bw,
                   void *workspace, size_t workspace_bytes) {
   if (!ctx || !workspace)
     return -1;
+
+  uint32_t rem = fs % bw;
+  if (rem) {
+    LORA_LOG_WARN("fs %u not multiple of bw %u (rem %u)", fs, bw, rem);
+    return -1;
+  }
 
   uint32_t n_bins = 1u << sf;
   uint32_t os_factor = fs / bw;
