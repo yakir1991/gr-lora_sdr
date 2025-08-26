@@ -39,9 +39,14 @@ int main(void)
     uint32_t sps = (1u << sf) * (samp_rate / bw);
     float complex chips_f[nsym * sps];
     lora_modulate(symbols, chips_f, sf, samp_rate, bw, nsym);
+#ifdef LORA_LITE_FIXED_POINT
     lora_q15_complex chips[nsym * sps];
     for (uint32_t i = 0; i < nsym * sps; ++i)
         chips[i] = lora_float_to_q15(chips_f[i]);
+    const lora_q15_complex *chips_in = chips;
+#else
+    const float complex *chips_in = chips_f;
+#endif
 
     uint32_t rec[4] = {0};
     size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
@@ -56,7 +61,7 @@ int main(void)
     ctx.cfo = 0.0f;
     ctx.cfo_phase = 0.0;
     clock_t t0 = clock();
-    lora_fft_demod(&ctx, chips, nsym, rec);
+    lora_fft_demod(&ctx, chips_in, nsym, rec);
     clock_t t1 = clock();
     lora_fft_demod_free(&ctx);
     free(ws);

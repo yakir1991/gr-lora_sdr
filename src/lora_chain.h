@@ -18,6 +18,7 @@ typedef enum {
     LORA_ERR_CRC_MISMATCH,   /* CRC verification failed */
     LORA_ERR_IO,             /* I/O read/write failure */
     LORA_ERR_OOM,            /* Memory allocation failed */
+    LORA_ERR_UNSUPPORTED,    /* Feature not supported */
 } lora_status;
 
 typedef struct {

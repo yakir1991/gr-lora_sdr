@@ -33,7 +33,8 @@ cmake --build build-arm
 ```
 
 ### Memory Considerations
-- Enable `LORA_LITE_FIXED_POINT` to avoid floating-point operations.
+- Enable `LORA_LITE_FIXED_POINT` to avoid floating-point operations. When left
+  off, the receiver uses a floating-point demodulator.
 - Disable logging via `LORA_LITE_ENABLE_LOGGING` to save flash and RAM.
 - Build static libraries (`BUILD_SHARED_LIBS=OFF`) to simplify bare-metal deployment.
 - Only include the modules you need to keep the binary size minimal.
