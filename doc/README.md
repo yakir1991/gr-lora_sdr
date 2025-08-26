@@ -194,6 +194,26 @@ Run the resulting `bench_lora_chain` binary on hardware and copy back its CSV
 output. Use `analyze_bench.py --threshold 0.2` on multiple CSV files to flag
 host/embedded deviations beyond the chosen tolerance.
 
+### AArch64 QEMU example
+
+Prerequisites:
+
+- `aarch64-linux-gnu-gcc` cross-compiler
+- `qemu-aarch64` user emulator
+
+Cross-compile and execute the benchmark under QEMU:
+
+```sh
+./scripts/run_qemu_aarch64.sh
+```
+
+The command writes `results/arm_qemu.csv`. Compare this file with host results
+using:
+
+```sh
+python scripts/analyze_bench.py results/host.csv results/arm_qemu.csv
+```
+
 ## Profiling
 
 The script [`scripts/profile_host.sh`](../scripts/profile_host.sh) builds a

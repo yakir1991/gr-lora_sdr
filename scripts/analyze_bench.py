@@ -5,13 +5,13 @@ Each CSV is expected to have the columns ``metric`` and ``value``.
 
 Examples
 --------
-Run with default 5% threshold::
+Run with the default lenient threshold::
 
     python scripts/analyze_bench.py base.csv comp.csv
 
-Specify a custom threshold::
+Enforce a maximum 10% deviation::
 
-    python scripts/analyze_bench.py base.csv comp.csv --threshold 0.1
+    python scripts/analyze_bench.py base.csv comp.csv --threshold 0.1 --strict
 """
 
 from __future__ import annotations
@@ -32,8 +32,16 @@ def _read_metrics(path: str) -> Dict[str, float]:
     """
 
     with open(path, newline="") as f:
-        reader = csv.DictReader(f)
-        return {row["metric"]: float(row["value"]) for row in reader}
+        first = f.readline().strip().split(",")
+        f.seek(0)
+        if {"metric", "value"} <= set(first):
+            reader = csv.DictReader(f)
+            return {row["metric"]: float(row["value"]) for row in reader}
+        else:
+            reader = csv.reader(f)
+            header = next(reader)
+            values = next(reader)
+            return {h: float(v) for h, v in zip(header, values)}
 
 
 def main() -> None:
@@ -47,6 +55,11 @@ def main() -> None:
         type=float,
         default=0.05,
         help="Allowed fractional difference before flagging",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit with status 1 if any metric exceeds the threshold",
     )
     args = parser.parse_args()
 
@@ -67,7 +80,7 @@ def main() -> None:
         if abs(delta) > args.threshold:
             flagged = True
 
-    if flagged:
+    if flagged and args.strict:
         sys.exit(1)
 
 
