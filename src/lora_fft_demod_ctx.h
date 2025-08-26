@@ -4,7 +4,15 @@
 #include "lora_config.h"
 #include "lora_fixed.h"
 #include <complex.h>
+#ifdef LORA_LITE_LIQUID_FFT
+#include <liquid/liquid.h>
+typedef fftplan lora_fft_plan;
+typedef float complex lora_fft_cpx;
+#else
 #include <kiss_fft.h>
+typedef kiss_fft_cfg lora_fft_plan;
+typedef kiss_fft_cpx lora_fft_cpx;
+#endif
 #include <stddef.h>
 #include <stdint.h>
 
@@ -28,9 +36,9 @@ typedef struct {
   lora_q15_complex *downchirp; /* precomputed downchirp */
 #endif
 
-  kiss_fft_cfg fft;        /* FFT plan */
-  kiss_fft_cpx *cx_in;     /* FFT input buffer */
-  kiss_fft_cpx *cx_out;    /* FFT output buffer */
+  lora_fft_plan fft;        /* FFT plan */
+  lora_fft_cpx *cx_in;      /* FFT input buffer */
+  lora_fft_cpx *cx_out;     /* FFT output buffer */
 } lora_fft_ctx_t;
 
 /* Return the number of bytes required for the workspace used by the

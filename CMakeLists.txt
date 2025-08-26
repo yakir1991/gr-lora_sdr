@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.12)
 project(lora_lite LANGUAGES C)
 
 option(LORA_LITE_FIXED_POINT "Use fixed-point math in LoRa Lite" OFF)
+option(LORA_LITE_USE_LIQUID_FFT "Use liquid-dsp FFT backend" ON)
 option(USE_SYSTEM_LIQUID_DSP "Use system or submodule liquid-dsp instead of FetchContent" OFF)
 option(BUILD_SHARED_LIBS "Build libraries as shared" ON)
 option(LORA_LITE_STATIC "Build static library artifacts" OFF)
@@ -19,32 +20,42 @@ if(LORA_LITE_BENCHMARK)
   add_compile_options(-O3 -DNDEBUG)
 endif()
 
-if(USE_SYSTEM_LIQUID_DSP)
-  # Prefer an in-tree submodule if present; fall back to a system search.
-  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/liquid-dsp/CMakeLists.txt)
-    add_subdirectory(liquid-dsp)
+if(LORA_LITE_USE_LIQUID_FFT OR LORA_LITE_FIXED_POINT)
+  if(USE_SYSTEM_LIQUID_DSP)
+    # Prefer an in-tree submodule if present; fall back to a manual search.
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/liquid-dsp/CMakeLists.txt)
+      add_subdirectory(liquid-dsp)
+    else()
+      find_library(LIQUID_LIB liquid)
+      find_path(LIQUID_INCLUDE_DIR liquid/liquid.h)
+      if(NOT LIQUID_LIB OR NOT LIQUID_INCLUDE_DIR)
+        message(FATAL_ERROR "liquid-dsp library not found")
+      endif()
+      add_library(liquid UNKNOWN IMPORTED)
+      set_target_properties(liquid PROPERTIES
+        IMPORTED_LOCATION ${LIQUID_LIB}
+        INTERFACE_INCLUDE_DIRECTORIES ${LIQUID_INCLUDE_DIR})
+    endif()
   else()
-    find_package(liquid-dsp REQUIRED)
+    include(FetchContent)
+
+    # Fetch the liquid-dsp library for DSP utilities
+    FetchContent_Declare(
+      liquid_dsp
+      GIT_REPOSITORY https://github.com/jgaeddert/liquid-dsp.git
+      GIT_TAG v1.3.2
+      GIT_SHALLOW TRUE
+    )
+
+    # Disable optional components to keep the build lightweight
+    set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(BUILD_AUTOTESTS OFF CACHE BOOL "" FORCE)
+    set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+    set(BUILD_SANDBOX OFF CACHE BOOL "" FORCE)
+    set(BUILD_DOC OFF CACHE BOOL "" FORCE)
+
+    FetchContent_MakeAvailable(liquid_dsp)
   endif()
-else()
-  include(FetchContent)
-
-  # Fetch the liquid-dsp library for DSP utilities
-  FetchContent_Declare(
-    liquid_dsp
-    GIT_REPOSITORY https://github.com/jgaeddert/liquid-dsp.git
-    GIT_TAG v1.3.2
-    GIT_SHALLOW TRUE
-  )
-
-  # Disable optional components to keep the build lightweight
-  set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-  set(BUILD_AUTOTESTS OFF CACHE BOOL "" FORCE)
-  set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
-  set(BUILD_SANDBOX OFF CACHE BOOL "" FORCE)
-  set(BUILD_DOC OFF CACHE BOOL "" FORCE)
-
-  FetchContent_MakeAvailable(liquid_dsp)
 endif()
 
 # Enable testing via CTest
