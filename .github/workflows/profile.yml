@@ -1,7 +1,6 @@
----
 name: host-profile
 
-'on':
+on:
   push:
     branches: [main]
   pull_request:
@@ -14,25 +13,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Install profiling tools
+      - name: Install deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y valgrind linux-tools-common \
-            linux-tools-generic
-      - name: Install Liquid DSP
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libliquid-dev
-      - name: Run profiling script
+          sudo apt-get install -y build-essential cmake pkg-config libliquid-dev linux-tools-common linux-tools-generic
+      - name: Host profile (best-effort)
         env:
           RESULTS_DIR: ${{ github.workspace }}/bench_out
         run: |
-          mkdir -p "$RESULTS_DIR"
           chmod +x scripts/profile_host.sh
           ./scripts/profile_host.sh
-      - name: Upload profiling artifacts
-        if: always()
+      - name: Upload host profile
         uses: actions/upload-artifact@v4
         with:
           name: host-profile
           path: bench_out/**
+          if-no-files-found: warn

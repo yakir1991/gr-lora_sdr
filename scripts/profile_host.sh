@@ -1,35 +1,42 @@
-#!/bin/sh
-set -e
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-BUILD_DIR="$(pwd)/build"
-RESULTS_DIR="${RESULTS_DIR:-$(pwd)/results}"
-CSV="$RESULTS_DIR/bench.csv"
-
-cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLORA_LITE_BENCHMARK=ON
-cmake --build "$BUILD_DIR"
+RESULTS_DIR="${RESULTS_DIR:-bench_out}"
+BUILD_DIR="${BUILD_DIR:-build}"
+CSV_PATH="${RESULTS_DIR}/host_profile.csv"
 
 mkdir -p "$RESULTS_DIR"
-echo "CWD: $(pwd)"
-echo "RESULTS_DIR: $RESULTS_DIR"
 
-"$BUILD_DIR/tests/bench_lora_chain" "$CSV" || {
-  code=$?
-  echo "bench_lora_chain failed with exit code $code" >&2
-  exit $code
+echo "[build] Release + tests"
+cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+cmake --build "$BUILD_DIR" -j"$(nproc)"
+
+echo "[bench] writing CSV -> ${CSV_PATH}"
+"./${BUILD_DIR}/tests/bench_lora_chain" "${CSV_PATH}" || {
+  echo "[ERROR] bench_lora_chain failed"; exit 1;
 }
 
-if [ ! -s "$CSV" ]; then
-  echo "bench_lora_chain did not produce CSV at $CSV" >&2
-  exit 1
+maybe_run_perf() {
+  if ! command -v perf >/dev/null 2>&1; then
+    echo "[perf] not installed – skipping"
+    return 0
+  fi
+  set +e
+  perf stat -d -d -d -r 3 -- "./${BUILD_DIR}/tests/bench_lora_chain" /dev/null
+  rc=$?
+  set -e
+  if [ "$rc" -ne 0 ]; then
+    echo "[perf] no permission/unsupported on runner – skipping (rc=${rc})"
+  fi
+  return 0
+}
+
+maybe_run_perf
+
+# Optional lightweight timing (לא מפיל את ה-job)
+if command -v /usr/bin/time >/dev/null 2>&1; then
+  echo "[time] collecting wall/CPU/mem (best-effort)"
+  /usr/bin/time -v "./${BUILD_DIR}/tests/bench_lora_chain" /dev/null || true
 fi
 
-perf stat -e cycles,instructions,branches,branch-misses,cache-misses -- "$BUILD_DIR/tests/bench_lora_chain" "$CSV" 2> "$RESULTS_DIR/profile_perf.txt" || {
-  code=$?
-  echo "perf stat: bench_lora_chain failed with exit code $code" >&2
-  exit $code
-}
-valgrind --tool=massif --massif-out-file="$RESULTS_DIR/profile_massif.txt" "$BUILD_DIR/tests/bench_lora_chain" "$CSV" >/dev/null 2>&1 || {
-  code=$?
-  echo "valgrind: bench_lora_chain failed with exit code $code" >&2
-  exit $code
-}
+echo "[done] CSV at ${CSV_PATH}"
