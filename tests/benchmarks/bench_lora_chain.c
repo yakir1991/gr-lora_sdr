@@ -39,7 +39,7 @@ int main(void)
     if (!csv)
     {
         perror("bench_results.csv");
-        return 1;
+        return EXIT_FAILURE;
     }
     fprintf(csv, "cycles,bytes_allocated,packets_per_sec\n");
 
@@ -48,25 +48,44 @@ int main(void)
     for (int i = 0; i < ITERATIONS; ++i)
     {
         size_t nchips = 0, out_len = 0;
-        if (lora_tx_chain(payload, sizeof payload, chips, LORA_MAX_CHIPS, &nchips) != 0)
+        int tx_ret = lora_tx_chain(payload, sizeof payload, chips, LORA_MAX_CHIPS, &nchips);
+        if (tx_ret)
         {
-            fprintf(stderr, "TX chain failed\n");
-            return 1;
+            fprintf(stderr, "Iteration %d: lora_tx_chain failed (%d)\n", i, tx_ret);
+            return EXIT_FAILURE;
         }
-        if (lora_rx_chain(chips, nchips, out, sizeof out, &out_len) != 0)
+        if (nchips == 0 || nchips > LORA_MAX_CHIPS)
         {
-            fprintf(stderr, "RX chain failed\n");
-            return 1;
+            fprintf(stderr, "Iteration %d: unexpected chip count %zu\n", i, nchips);
+            return EXIT_FAILURE;
         }
+
+        int rx_ret = lora_rx_chain(chips, nchips, out, sizeof out, &out_len);
+        if (rx_ret)
+        {
+            fprintf(stderr, "Iteration %d: lora_rx_chain failed (%d)\n", i, rx_ret);
+            return EXIT_FAILURE;
+        }
+        if (out_len != sizeof payload)
+        {
+            fprintf(stderr, "Iteration %d: unexpected output length %zu\n", i, out_len);
+            return EXIT_FAILURE;
+        }
+
 #ifdef _WIN32
         size_t used = 0; /* _msize requires a pointer; omit for now */
 #else
+        size_t used = 0;
 #if defined(__GLIBC__) && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 33))
         struct mallinfo2 mi = mallinfo2();
-#else
+        used = mi.uordblks;
+#elif defined(__GLIBC__)
         struct mallinfo mi = mallinfo();
+        used = mi.uordblks;
+#else
+        if (i == 0)
+            fprintf(stderr, "Warning: memory usage metrics unavailable on this platform\n");
 #endif
-        size_t used = mi.uordblks;
 #endif
         if (used > peak_bytes)
             peak_bytes = used;
@@ -80,5 +99,5 @@ int main(void)
 
     printf("cycles=%llu, peak_bytes=%zu, packets_per_sec=%.3f\n",
            (unsigned long long)cycles, peak_bytes, pps);
-    return 0;
+    return EXIT_SUCCESS;
 }
