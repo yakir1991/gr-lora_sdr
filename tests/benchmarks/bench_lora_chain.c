@@ -8,6 +8,10 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <direct.h>
+#define getcwd _getcwd
+#else
+#include <unistd.h>
 #endif
 
 #include "lora_chain.h"
@@ -39,6 +43,9 @@ int main(void)
     if (!csv)
     {
         perror("bench_results.csv");
+        char cwd[256];
+        if (getcwd(cwd, sizeof cwd))
+            fprintf(stderr, "cwd: %s\n", cwd);
         return EXIT_FAILURE;
     }
     fprintf(csv, "cycles,bytes_allocated,packets_per_sec\n");
@@ -51,7 +58,7 @@ int main(void)
         int tx_ret = lora_tx_chain(payload, sizeof payload, chips, LORA_MAX_CHIPS, &nchips);
         if (tx_ret)
         {
-            fprintf(stderr, "Iteration %d: lora_tx_chain failed (%d)\n", i, tx_ret);
+            fprintf(stderr, "Iteration %d: lora_tx_chain failed (%d, nchips=%zu)\n", i, tx_ret, nchips);
             return EXIT_FAILURE;
         }
         if (nchips == 0 || nchips > LORA_MAX_CHIPS)
@@ -63,7 +70,7 @@ int main(void)
         int rx_ret = lora_rx_chain(chips, nchips, out, sizeof out, &out_len);
         if (rx_ret)
         {
-            fprintf(stderr, "Iteration %d: lora_rx_chain failed (%d)\n", i, rx_ret);
+            fprintf(stderr, "Iteration %d: lora_rx_chain failed (%d, nchips=%zu, out_len=%zu)\n", i, rx_ret, nchips, out_len);
             return EXIT_FAILURE;
         }
         if (out_len != sizeof payload)
@@ -76,12 +83,17 @@ int main(void)
         size_t used = 0; /* _msize requires a pointer; omit for now */
 #else
         size_t used = 0;
-#if defined(__GLIBC__) && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 33))
+#if defined(__GLIBC__) && defined(__GLIBC_PREREQ)
+#  if __GLIBC_PREREQ(2, 33)
         struct mallinfo2 mi = mallinfo2();
         used = mi.uordblks;
-#elif defined(__GLIBC__)
+#  elif __GLIBC_PREREQ(2, 0)
         struct mallinfo mi = mallinfo();
         used = mi.uordblks;
+#  else
+        if (i == 0)
+            fprintf(stderr, "Warning: glibc too old for memory usage metrics\n");
+#  endif
 #else
         if (i == 0)
             fprintf(stderr, "Warning: memory usage metrics unavailable on this platform\n");
