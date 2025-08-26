@@ -4,12 +4,18 @@
 #include <complex.h>
 #include <math.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <time.h>
 
 static uint32_t rng_state = 0;
 
+static void seed_rng(uint32_t seed) {
+    rng_state = seed;
+    srand(seed);
+}
+
 static float rand_uniform(void) {
-    rng_state = rng_state * 1664525u + 1013904223u;
-    return (rng_state + 1.0f) / 4294967296.0f;
+    return ((float)rand()) / ((float)RAND_MAX + 1.0f);
 }
 
 static float rand_normal(void) {
@@ -22,12 +28,16 @@ static float rand_normal(void) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 3) {
-        LORA_LOG_ERR("Usage: %s <input_file> <output_bin>", argv[0]);
+    if (argc < 3 || argc > 4) {
+        LORA_LOG_ERR("Usage: %s <input_file> <output_bin> [seed]", argv[0]);
         return 1;
     }
     const char *in_path = argv[1];
     const char *out_path = argv[2];
+
+    uint32_t seed = (argc == 4) ? (uint32_t)strtoul(argv[3], NULL, 10)
+                                : (uint32_t)time(NULL);
+    seed_rng(seed);
 
     FILE *fi = fopen(in_path, "rb");
     if (!fi) {
