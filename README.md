@@ -35,3 +35,41 @@ measurements using:
 ```sh
 python scripts/analyze_bench.py results/host.csv results/arm_qemu.csv
 ```
+
+## Benchmark Matrix
+
+Two helper scripts allow running performance benchmarks and comparing results
+between builds with `LORA_LITE_USE_LIQUID_FFT=ON` and `OFF`.
+
+### Run Matrix
+
+```bash
+./scripts/bench_matrix.sh
+```
+
+This will create two builds (`build-off`, `build-on`), run
+`bench_lora_chain`, and save CSV outputs under `bench_out/<timestamp>/`.
+
+### Compare Results
+
+```bash
+./scripts/bench_compare.py bench_out/<timestamp>
+```
+
+This prints a table comparing `packets_per_sec` between OFF and ON,
+highlighting the delta and percentage ratio.
+
+Example output:
+
+```
+=== LoRa Lite Benchmark Comparison ===
+Folder: bench_out/20250826-142030
+
+Config                 packets_per_sec
+----------------------------------
+FFT=OFF                       18516.393
+FFT=ON                        19234.872
+----------------------------------
+Δ (ON-OFF)                      718.479
+Ratio (ON/OFF)                  103.88%
+```
