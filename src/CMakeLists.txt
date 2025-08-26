@@ -59,12 +59,22 @@ target_link_libraries(lora_mod PUBLIC lora_utils m)
 # Path to legacy sources used by the FFT demodulator
 set(LEGACY_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../legacy_gr_lora_sdr/lib)
 
-add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c ${LEGACY_LIB_DIR}/kiss_fft.c)
-target_include_directories(lora_fft_demod PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<BUILD_INTERFACE:${LEGACY_LIB_DIR}>
-  $<INSTALL_INTERFACE:include/lora_lite>)
-target_link_libraries(lora_fft_demod PUBLIC lora_utils m)
+if(LORA_LITE_USE_LIQUID_FFT)
+  add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c)
+  target_include_directories(lora_fft_demod PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:include/lora_lite>
+    $<$<NOT:$<BOOL:${USE_SYSTEM_LIQUID_DSP}>>:${liquid_dsp_SOURCE_DIR}/include>)
+  target_link_libraries(lora_fft_demod PUBLIC lora_utils m liquid)
+  target_compile_definitions(lora_fft_demod PUBLIC LORA_LITE_LIQUID_FFT)
+else()
+  add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c ${LEGACY_LIB_DIR}/kiss_fft.c)
+  target_include_directories(lora_fft_demod PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${LEGACY_LIB_DIR}>
+    $<INSTALL_INTERFACE:include/lora_lite>)
+  target_link_libraries(lora_fft_demod PUBLIC lora_utils m)
+endif()
 
 add_library(lora_header lora_header.c)
 target_include_directories(lora_header PUBLIC
