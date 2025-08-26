@@ -1,5 +1,9 @@
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
+if(LORA_LITE_USE_LIQUID_FFT OR LORA_LITE_FIXED_POINT)
+  find_package(Liquid REQUIRED)
+endif()
+
 add_library(signal_utils signal_utils.c)
 target_include_directories(signal_utils PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -12,7 +16,7 @@ target_include_directories(lora_utils PUBLIC
   $<INSTALL_INTERFACE:include/lora_lite>)
 target_link_libraries(lora_utils PUBLIC m)
 if(LORA_LITE_FIXED_POINT)
-  target_link_libraries(lora_utils PUBLIC liquid)
+  target_link_libraries(lora_utils PUBLIC Liquid::liquid)
 endif()
 
 
@@ -62,7 +66,6 @@ target_link_libraries(lora_mod PUBLIC lora_utils m)
 set(LEGACY_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../legacy_gr_lora_sdr/lib)
 
 if(LORA_LITE_USE_LIQUID_FFT)
-  find_package(Liquid REQUIRED)
   add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c)
   target_include_directories(lora_fft_demod PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>

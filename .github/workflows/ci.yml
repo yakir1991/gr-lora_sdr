@@ -24,9 +24,9 @@ jobs:
             cmake \
             libboost-all-dev \
             libfftw3-dev
-          if [ "${{ matrix.use_liquid_fft }}" = "ON" ]; then
-            sudo apt-get install -y libliquid-dev
-          fi
+
+      - name: Install Liquid DSP
+        run: sudo apt-get update && sudo apt-get install -y libliquid-dev
 
       - name: Configure
         run: cmake -S . -B build \
