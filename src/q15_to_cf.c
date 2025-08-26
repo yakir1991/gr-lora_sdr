@@ -1,4 +1,5 @@
 #include "q15_to_cf.h"
+
 #ifdef LORA_LITE_FIXED_POINT
 void q15_to_cf(float complex *restrict dst,
                const lora_q15_complex *restrict src,
@@ -8,4 +9,4 @@ void q15_to_cf(float complex *restrict dst,
         dst[i] = src[i].r * scale + I * src[i].i * scale;
     }
 }
-#endif
+#endif /* LORA_LITE_FIXED_POINT */

@@ -56,7 +56,10 @@ target_include_directories(lora_mod PUBLIC
   $<INSTALL_INTERFACE:include/lora_lite>)
 target_link_libraries(lora_mod PUBLIC lora_utils m)
 
-add_library(lora_fft lora_fft.c q15_to_cf.c)
+add_library(lora_fft lora_fft.c)
+if(LORA_LITE_FIXED_POINT)
+  target_sources(lora_fft PRIVATE q15_to_cf.c)
+endif()
 target_include_directories(lora_fft PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -66,12 +69,14 @@ if(LORA_LITE_USE_LIQUID_FFT)
   target_link_libraries(lora_fft PUBLIC Liquid::liquid)
 endif()
 
+if(LORA_LITE_FIXED_POINT)
 add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c)
 target_include_directories(lora_fft_demod PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/lora_lite>)
 target_link_libraries(lora_fft_demod PUBLIC lora_utils lora_fft m)
+endif()
 
 add_library(lora_header lora_header.c)
 target_include_directories(lora_header PUBLIC
@@ -92,6 +97,7 @@ target_include_directories(lora_tx_chain PUBLIC
   $<INSTALL_INTERFACE:include/lora_lite>)
 target_link_libraries(lora_tx_chain PUBLIC lora_add_crc lora_whitening lora_mod m)
 
+if(LORA_LITE_FIXED_POINT)
 add_library(lora_rx_chain lora_rx_chain.c)
 target_include_directories(lora_rx_chain PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -100,6 +106,7 @@ target_link_libraries(lora_rx_chain PUBLIC lora_add_crc lora_whitening lora_fft_
 
 add_executable(lora_chain_runner lora_chain_runner.c)
 target_link_libraries(lora_chain_runner PRIVATE lora_tx_chain lora_rx_chain lora_io m)
+endif()
 
 set(LORA_LITE_LIBS
   signal_utils
@@ -113,16 +120,21 @@ set(LORA_LITE_LIBS
   lora_graymap
   lora_mod
   lora_fft
-  lora_fft_demod
   lora_header
   lora_frame_sync
   lora_tx_chain
-  lora_rx_chain
 )
+if(LORA_LITE_FIXED_POINT)
+  list(APPEND LORA_LITE_LIBS lora_fft_demod lora_rx_chain)
+endif()
+
 set(LORA_LITE_EXES
   hello_world
-  lora_chain_runner
 )
+if(LORA_LITE_FIXED_POINT)
+  list(APPEND LORA_LITE_EXES lora_chain_runner)
+endif()
+
 set(LORA_LITE_TARGETS ${LORA_LITE_LIBS} ${LORA_LITE_EXES})
 foreach(t ${LORA_LITE_TARGETS})
   target_compile_definitions(${t} PRIVATE

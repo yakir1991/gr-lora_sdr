@@ -1,3 +1,4 @@
+#ifdef LORA_LITE_FIXED_POINT
 #include "lora_fft_demod_ctx.h"
 #include "lora_log.h"
 #include "lora_utils.h"
@@ -182,3 +183,5 @@ void lora_fft_process(lora_fft_demod_ctx_t *ctx,
 
   ctx->cfo_phase += (double)nsym * (double)sps * dphi;
 }
+
+#endif /* LORA_LITE_FIXED_POINT */

@@ -1,4 +1,6 @@
 #include "lora_fft_demod.h"
+
+#ifdef LORA_LITE_FIXED_POINT
 #include "lora_fft_demod_ctx.h"
 #include <stdlib.h>
 
@@ -29,4 +31,6 @@ void lora_fft_demod(const lora_q15_complex *restrict chips,
   lora_fft_demod_destroy(&ctx);
   free(ws);
 }
+
+#endif /* LORA_LITE_FIXED_POINT */
 

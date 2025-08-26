@@ -2,6 +2,8 @@
 #define LORA_FFT_DEMOD_H
 
 #include "lora_config.h"
+
+#ifdef LORA_LITE_FIXED_POINT
 #include "lora_fixed.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -16,5 +18,6 @@ void lora_fft_demod(const lora_q15_complex *restrict chips,
                     uint32_t *restrict symbols,
                     uint8_t sf, uint32_t samp_rate, uint32_t bw,
                     float freq_offset, size_t nsym);
+#endif /* LORA_LITE_FIXED_POINT */
 
 #endif /* LORA_FFT_DEMOD_H */
