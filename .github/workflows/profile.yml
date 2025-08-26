@@ -13,6 +13,10 @@ jobs:
       - uses: actions/checkout@v3
       - name: Install profiling tools
         run: sudo apt-get update && sudo apt-get install -y valgrind linux-tools-common linux-tools-generic
+      - name: Install Liquid DSP
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libliquid-dev
       - name: Run profiling script
         run: |
           chmod +x scripts/profile_host.sh
