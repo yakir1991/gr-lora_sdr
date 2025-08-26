@@ -157,13 +157,12 @@ lora_add_test(test_full_chain_compare
 lora_add_test(test_fixed_float_float
   SOURCES test_fixed_float_equiv.c ../src/lora_mod.c ../src/lora_fft_demod.c ../src/lora_fft_demod_ctx.c ../src/lora_utils.c ../src/lora_fft.c ../src/q15_to_cf.c
   LIBS m
-  INCLUDES ../src ../include ${CMAKE_CURRENT_SOURCE_DIR})
+  DEFINITIONS LORA_LITE_FIXED_POINT)
 
 lora_add_test(test_fixed_float_fixed
   SOURCES test_fixed_float_equiv.c ../src/lora_mod.c ../src/lora_fft_demod.c ../src/lora_fft_demod_ctx.c ../src/lora_utils.c ../src/lora_fft.c ../src/q15_to_cf.c
   LIBS m
-  DEFINITIONS LORA_LITE_FIXED_POINT
-  INCLUDES ../src ../include ${CMAKE_CURRENT_SOURCE_DIR})
+  DEFINITIONS LORA_LITE_FIXED_POINT)
 
 add_test(NAME run_fixed_float_float
   COMMAND test_fixed_float_float ${CMAKE_CURRENT_BINARY_DIR}/float.bin)
@@ -199,7 +198,6 @@ set_tests_properties(compare_fixed_float_nolog PROPERTIES
 
 add_executable(bench_lora_chain benchmarks/bench_lora_chain.c)
 target_link_libraries(bench_lora_chain PRIVATE lora_tx_chain lora_rx_chain)
-target_include_directories(bench_lora_chain PRIVATE ../src)
 target_compile_definitions(bench_lora_chain PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
 target_compile_options(bench_lora_chain PRIVATE -O3 -DNDEBUG)
 add_test(NAME bench_lora_chain COMMAND bench_lora_chain bench_results.csv)

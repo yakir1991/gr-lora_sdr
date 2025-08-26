@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "lora_log.h"
-#include "../src/lora_config.h"
+#include "lora_config.h"
 #include "lora_io.h"
 
 int main(void) {

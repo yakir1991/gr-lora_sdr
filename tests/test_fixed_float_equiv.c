@@ -2,10 +2,10 @@
 #include <stdint.h>
 #include <complex.h>
 #include "lora_log.h"
-#include "../src/lora_mod.h"
-#include "../src/lora_fft_demod.h"
-#include "../src/lora_config.h"
-#include "../src/lora_fixed.h"
+#include "lora_mod.h"
+#include "lora_fft_demod.h"
+#include "lora_config.h"
+#include "lora_fixed.h"
 
 int main(int argc, char **argv) {
     const char *out_path = argc > 1 ? argv[1] : "out.bin";
