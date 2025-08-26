@@ -173,3 +173,48 @@ cmake --build build-ubsan -j"$(nproc)"
 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ctest --test-dir build-ubsan -V
 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./build-ubsan/tests/bench_lora_chain /dev/null || true
 ```
+
+### ARM Power/Energy sampling
+Measure average power, energy and energy-per-packet while running the LoRa bench.
+
+**Prereqs (ARM Linux):**
+- Kernel exposes power sensors under `/sys/class/power_supply/*/{power_now,voltage_now,current_now}` (µW/µV/µA), or under `/sys/class/hwmon/hwmon*/power*_input` (µW).
+- If auto-detect fails, set:
+  - `POWER_FILE=/sys/.../power_now` **or**
+  - `VOLTAGE_FILE=/sys/.../voltage_now` and `CURRENT_FILE=/sys/.../current_now`
+
+**Local run (OFF/ON, 20s):**
+```bash
+chmod +x scripts/energy/run_power_matrix.sh
+DURATION_SEC=20 ./scripts/energy/run_power_matrix.sh
+# Results under power_out/<timestamp>/{OFF,ON}/
+./scripts/energy/energy_compare.py power_out/<timestamp>
+```
+
+**Files produced**
+- `energy.csv` – samples: `time_ms,power_mw`
+- `bench_stdout.log` – raw stdout lines with `packets_per_sec=...`
+- `summary.csv` – aggregated: `avg_power_mw,energy_j,duration_s,pps_avg,energy_per_packet_mJ`
+
+**CI (self-hosted ARM64)**
+- Add a self-hosted runner with labels `self-hosted, linux, ARM64`.
+- Run workflow: `.github/workflows/arm-power.yml`
+- Artifacts include raw CSVs + summaries.
+
+**Tip:** For stable numbers, pin CPU freq/governor to `performance` and disable background services. Use longer `DURATION_SEC` on noisy boards.
+
+איך משתמשים (בקצרה)
+
+על ה-ARM:
+
+sudo apt-get install -y python3
+export POWER_FILE=/sys/class/power_supply/*/power_now   # אם צריך לעזור לגלאי
+DURATION_SEC=20 ./scripts/energy/run_power_matrix.sh
+
+
+להשוואה:
+
+./scripts/energy/energy_compare.py power_out/<timestamp>
+
+
+ב-CI: להפעיל את arm-power על self-hosted ARM64.
