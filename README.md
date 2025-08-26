@@ -117,6 +117,7 @@ A workflow at `.github/workflows/embedded-bench.yml` runs:
 2. FFT matrix benchmarks (OFF/ON).
 3. Comparison & guard.
 4. Uploads artifacts (CSV files) for inspection.
+`scripts/profile_host.sh` runs benchmark + CSV; `perf` metrics are collected on a best-effort basis in restricted environments.
 
 ### Notes
 - To use Liquid-DSP locally: `sudo apt install -y libliquid-dev`.
