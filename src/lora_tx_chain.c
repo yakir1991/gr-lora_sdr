@@ -10,29 +10,32 @@ int lora_tx_chain(const uint8_t *payload, size_t payload_len,
                   float complex *chips, size_t chips_buf_len,
                   size_t *nchips_out)
 {
+    if (!payload || !chips || !nchips_out || chips_buf_len == 0)
+        return -1;
+
     const uint8_t sf = 8;
     const uint32_t bw = 125000;
     const uint32_t samp_rate = 125000;
 
-    size_t total_bytes = payload_len + 2;
-    if (total_bytes > LORA_MAX_PAYLOAD_LEN)
+    if (payload_len > LORA_MAX_PAYLOAD_LEN)
         return -1;
-    uint8_t buf[LORA_MAX_PAYLOAD_LEN];
+
+    uint8_t buf[LORA_MAX_PAYLOAD_LEN + 2];
     memcpy(buf, payload, payload_len);
     buf[payload_len] = 0;
     buf[payload_len + 1] = 0;
 
     uint8_t crc_n[4];
-    lora_add_crc(buf, total_bytes, crc_n);
+    lora_add_crc(buf, payload_len + 2, crc_n);
     uint8_t crc1 = (uint8_t)((crc_n[1] << 4) | crc_n[0]);
     uint8_t crc2 = (uint8_t)((crc_n[3] << 4) | crc_n[2]);
     buf[payload_len] = crc1;
     buf[payload_len + 1] = crc2;
 
-    uint8_t whitened[LORA_MAX_PAYLOAD_LEN];
-    lora_whiten(buf, whitened, total_bytes);
+    uint8_t whitened[LORA_MAX_PAYLOAD_LEN + 2];
+    lora_whiten(buf, whitened, payload_len + 2);
 
-    uint32_t nsym = (uint32_t)total_bytes;
+    uint32_t nsym = (uint32_t)(payload_len + 2);
     if (nsym > LORA_MAX_NSYM)
         return -1;
     uint32_t symbols[LORA_MAX_NSYM];

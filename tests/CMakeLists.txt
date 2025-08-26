@@ -104,6 +104,11 @@ lora_add_test(test_lora_chain
   LIBS lora_tx_chain lora_rx_chain
   PASS_REGEX "Payload recovered successfully")
 
+lora_add_test(test_lora_chain_edge_cases
+  SOURCES test_lora_chain_edge_cases.c
+  LIBS lora_tx_chain lora_rx_chain
+  PASS_REGEX "Edge case tests passed")
+
 lora_add_test(embedded_loopback
   SOURCES embedded_loopback.c
   LIBS lora_tx_chain lora_rx_chain
