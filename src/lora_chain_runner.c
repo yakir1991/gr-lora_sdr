@@ -36,7 +36,8 @@ int main(int argc, char **argv) {
     }
     lora_io_t in_io;
     lora_io_init_file(&in_io, fi);
-    uint8_t payload[LORA_MAX_PAYLOAD_LEN];
+    /* Move large buffers off the stack (avoid 8MB default stack overflow) */
+    static uint8_t payload[LORA_MAX_PAYLOAD_LEN];
     size_t rd = 0;
     while (rd < LORA_MAX_PAYLOAD_LEN) {
         size_t n = in_io.read(in_io.ctx, payload + rd, LORA_MAX_PAYLOAD_LEN - rd);
@@ -45,8 +46,12 @@ int main(int argc, char **argv) {
         rd += n;
     }
     fclose(fi);
+    if (rd == 0) {
+        LORA_LOG_ERR("input file is empty or unreadable: %s", in_path);
+        return 2;
+    }
 
-    float complex chips[LORA_MAX_CHIPS];
+    static float complex chips[LORA_MAX_CHIPS];
     size_t nchips;
     if (lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips) != 0)
         return 1;
@@ -59,7 +64,7 @@ int main(int argc, char **argv) {
         chips[i] += nre + I * nim;
     }
 
-    uint8_t out_payload[LORA_MAX_PAYLOAD_LEN];
+    static uint8_t out_payload[LORA_MAX_PAYLOAD_LEN];
     size_t out_len;
     if (lora_rx_chain(chips, nchips, out_payload, sizeof(out_payload), &out_len) != 0)
         return 1;
@@ -71,6 +76,11 @@ int main(int argc, char **argv) {
     }
     lora_io_t out_io;
     lora_io_init_file(&out_io, fo);
+    if (out_len == 0) {
+        LORA_LOG_ERR("decoder produced empty payload, refusing to write");
+        fclose(fo);
+        return 3;
+    }
     if (out_io.write(out_io.ctx, out_payload, out_len) != out_len) {
         fclose(fo);
         return 1;
