@@ -25,10 +25,11 @@ jobs:
         run: |
           chmod +x scripts/profile_host.sh
           ./scripts/profile_host.sh
+      - name: Prepare benchmark results directory
+        run: mkdir -p results
       - name: Run bench_lora_chain for CSV
-        run: |
-          mkdir -p results && cd results
-          ../build/tests/bench_lora_chain
+        working-directory: results
+        run: ../build/tests/bench_lora_chain 2> bench_stderr.log
       - name: Upload profiling artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -36,3 +37,4 @@ jobs:
           path: |
             results/profile_*.txt
             results/bench_results.csv
+            results/bench_stderr.log
