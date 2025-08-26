@@ -186,9 +186,13 @@ even if the library is not installed.
    ```sh
    cmake -S . -B build -DLORA_LITE_USE_LIQUID_FFT=OFF
    ```
-3. Run the benchmark:
+3. Run the benchmark (the output CSV path can be supplied as an argument or via the `BENCH_CSV` environment variable):
    ```sh
    ./build/tests/bench_lora_chain base.csv
+   # write results to a specific location
+   ./build/tests/bench_lora_chain results/bench_results.csv
+   # or use an environment variable
+   BENCH_CSV=results/bench_results.csv ./build/tests/bench_lora_chain
    ```
 4. Compare two runs:
    ```sh
@@ -211,10 +215,16 @@ ctest --test-dir build -R bench_lora_chain
 The run produces `bench_results.csv` in the build tree by default containing
 cycle counts, peak heap usage, and packet throughput. Pass a CSV path as the
 first argument or set the `BENCH_CSV` environment variable to override the
-output file. Summarize and compare files with the helper script:
+output file. For example:
 
 ```sh
-python analyze_bench.py build/tests/bench_results.csv
+./build/tests/bench_lora_chain results/bench_results.csv
+```
+
+Summarize and compare files with the helper script:
+
+```sh
+python scripts/analyze_bench.py results/bench_results.csv
 ```
 
 To target a microcontroller, add a toolchain file:
