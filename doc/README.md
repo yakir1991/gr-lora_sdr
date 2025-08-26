@@ -193,6 +193,27 @@ cmake --build build-arm
 Run the resulting `bench_lora_chain` binary on hardware and copy back its CSV
 output. Use `analyze_bench.py --threshold 0.2` on multiple CSV files to flag
 host/embedded deviations beyond the chosen tolerance.
+
+## Profiling
+
+The script [`scripts/profile_host.sh`](../scripts/profile_host.sh) builds a
+`RelWithDebInfo` host binary and records performance counters and heap usage.
+Run it from the repository root:
+
+```sh
+./scripts/profile_host.sh
+```
+
+The run requires `perf` and `valgrind`.  It creates two files in
+`results/`:
+
+- `profile_perf.txt` – CPU cycles, instructions, and branch/cache statistics
+  gathered with `perf stat`.
+- `profile_massif.txt` – heap snapshots from Valgrind's `massif` tool.  Use
+  `ms_print results/profile_massif.txt` to view the peak memory profile.
+
+These artifacts help evaluate runtime behavior and memory consumption on the
+host platform.
  
 ## Callback-based I/O and Logging APIs
 
