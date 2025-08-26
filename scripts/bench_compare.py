@@ -15,7 +15,7 @@ def main():
     off = os.path.join(d, "bench_OFF.csv")
     on  = os.path.join(d, "bench_ON.csv")
     if not (os.path.isfile(off) and os.path.isfile(on)):
-        print(f"missing CSVs in {d}", file=sys.stderr)
+        print(f"missing CSVs in {d} (expected bench_OFF.csv and bench_ON.csv)", file=sys.stderr)
         sys.exit(3)
     pps_off = read_pps(off)
     pps_on  = read_pps(on)
