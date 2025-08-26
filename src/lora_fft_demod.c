@@ -5,7 +5,6 @@
 #include "q15_to_cf.h"
 #endif
 #include <math.h>
-#include <stdalign.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -29,17 +28,19 @@ size_t lora_fft_workspace_bytes(uint8_t sf, uint32_t fs, uint32_t bw) {
   uint32_t os_factor = fs / bw;
   uint32_t sps = n_bins * os_factor;
 
+  const size_t align = 32;
   size_t total = 0;
-  total = align_up(total, alignof(float complex));
+  total = align_up(total, align);
   total += n_bins * sizeof(float complex); /* FFT work */
-  total = align_up(total, alignof(float complex));
+  total = align_up(total, align);
   total += n_bins * sizeof(float complex); /* FFT twiddles */
-  total = align_up(total, alignof(float complex));
+  total = align_up(total, align);
   total += n_bins * sizeof(float complex); /* FFT input */
-  total = align_up(total, alignof(float complex));
+  total = align_up(total, align);
   total += n_bins * sizeof(float complex); /* FFT output */
-  total = align_up(total, alignof(float complex));
+  total = align_up(total, align);
   total += sps * sizeof(float complex);    /* downchirp */
+  total = align_up(total, align);
   return total;
 }
 
@@ -71,24 +72,25 @@ int lora_fft_demod_init(lora_fft_demod_ctx_t *ctx, uint8_t sf, uint32_t fs,
   ctx->os_factor = os_factor;
   ctx->sps = sps;
 
+  const size_t align = 32;
   unsigned char *p =
-      align_ptr((unsigned char *)workspace, alignof(float complex));
+      align_ptr((unsigned char *)workspace, align);
 
   ctx->fft.work = (float complex *)p;
   p += n_bins * sizeof(float complex);
-  p = align_ptr(p, alignof(float complex));
+  p = align_ptr(p, align);
 
   ctx->fft.tw = (float complex *)p;
   p += n_bins * sizeof(float complex);
-  p = align_ptr(p, alignof(float complex));
+  p = align_ptr(p, align);
 
   ctx->fft_in = (float complex *)p;
   p += n_bins * sizeof(float complex);
-  p = align_ptr(p, alignof(float complex));
+  p = align_ptr(p, align);
 
   ctx->fft_out = (float complex *)p;
   p += n_bins * sizeof(float complex);
-  p = align_ptr(p, alignof(float complex));
+  p = align_ptr(p, align);
 
   ctx->downchirp = (float complex *)p;
   p += sps * sizeof(float complex);

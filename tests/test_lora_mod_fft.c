@@ -45,7 +45,7 @@ int main(void)
 
     uint32_t rec[4] = {0};
     size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
-    void *ws = malloc(ws_bytes);
+    void *ws = aligned_alloc(32, ws_bytes);
     if (!ws)
         return 1;
     lora_fft_demod_ctx_t ctx;
