@@ -122,3 +122,29 @@ A workflow at `.github/workflows/embedded-bench.yml` runs:
 ### Notes
 - To use Liquid-DSP locally: `sudo apt install -y libliquid-dev`.
 - For embedded targets, prefer the `embedded_profile.cmake` preset, and enable `-DLORA_LITE_FIXED_POINT=ON` when possible.
+
+### Embedded profile: Liquid FFT default & baseline
+When building with the embedded profile:
+```bash
+cmake -S . -B build-emb -C cmake/embedded_profile.cmake -DBUILD_TESTING=ON
+cmake --build build-emb -j"$(nproc)"
+./build-emb/tests/bench_lora_chain bench_emb.csv
+```
+**Observed on embedded profile:** Liquid FFT is ~10–11% faster than KISS
+(example: `ON ≈ 9.83k pps` vs `OFF ≈ 8.88k pps`).
+
+To benchmark both FFT modes and compare:
+```bash
+./scripts/bench_matrix.sh
+LATEST_DIR=$(ls -1d bench_out/* | tail -n1)
+./scripts/bench_compare.py "$LATEST_DIR"
+```
+
+Guard thresholds for embedded live in `bench/targets.json`:
+```json
+{ "min_pps_off": 8500.0, "min_pps_on": 9600.0, "min_ratio_on_over_off": 1.06 }
+```
+Run the guard on a results folder:
+```bash
+./scripts/bench_guard.py "$LATEST_DIR"
+```
