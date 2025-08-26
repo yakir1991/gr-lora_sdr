@@ -39,14 +39,13 @@ size_t lora_fft_workspace_bytes(uint8_t sf, uint32_t fs, uint32_t bw) {
   total = align_up(total, align);
   total += n_bins * sizeof(float complex); /* FFT output */
   total = align_up(total, align);
-  total += sps * sizeof(float complex);    /* downchirp */
+  total += sps * sizeof(float complex); /* downchirp */
   total = align_up(total, align);
   return total;
 }
 
 int lora_fft_demod_init(lora_fft_demod_ctx_t *ctx, uint8_t sf, uint32_t fs,
-                        uint32_t bw, void *workspace,
-                        size_t workspace_bytes) {
+                        uint32_t bw, void *workspace, size_t workspace_bytes) {
   if (!ctx || !workspace)
     return -1;
 
@@ -73,8 +72,7 @@ int lora_fft_demod_init(lora_fft_demod_ctx_t *ctx, uint8_t sf, uint32_t fs,
   ctx->sps = sps;
 
   const size_t align = 32;
-  unsigned char *p =
-      align_ptr((unsigned char *)workspace, align);
+  unsigned char *p = align_ptr((unsigned char *)workspace, align);
 
   ctx->fft.work = (float complex *)p;
   p += n_bins * sizeof(float complex);
@@ -110,14 +108,37 @@ void lora_fft_demod_free(lora_fft_demod_ctx_t *ctx) {
   lora_fft_dispose(&ctx->fft);
 }
 
+/*
+ * Mix the incoming chips with the pre-computed downchirp and accumulate
+ * results into the FFT input buffer. When `apply_cfo` is non-zero, each
+ * sample is additionally rotated by the running CFO phase.
+ */
+static inline void dechirp_and_accumulate(
+    const float complex *restrict sc, const float complex *restrict downchirp,
+    uint32_t n_bins, uint32_t os_factor, float complex *restrict fft_in,
+    int apply_cfo, float complex *phase, float complex step) {
+  for (uint32_t b = 0; b < n_bins; ++b) {
+    float complex acc = 0.0f;
+    uint32_t n = b * os_factor;
+    for (uint32_t k = 0; k < os_factor; ++k, ++n) {
+      float complex c = sc[n] * downchirp[n];
+      if (apply_cfo) {
+        c *= *phase;
+        *phase *= step;
+      }
+      acc += c;
+    }
+    fft_in[b] = acc;
+  }
+}
+
 void lora_fft_demod(lora_fft_demod_ctx_t *ctx,
 #ifdef LORA_LITE_FIXED_POINT
-                      const lora_q15_complex *restrict chips,
+                    const lora_q15_complex *restrict chips,
 #else
-                      const float complex *restrict chips,
+                    const float complex *restrict chips,
 #endif
-                      size_t nsym,
-                      uint32_t *restrict symbols) {
+                    size_t nsym, uint32_t *restrict symbols) {
   if (!ctx || !chips || !symbols)
     return;
 
@@ -141,13 +162,9 @@ void lora_fft_demod(lora_fft_demod_ctx_t *ctx,
 #else
       const float complex *restrict sc = chips + s * sps;
 #endif
-      for (uint32_t b = 0; b < n_bins; ++b) {
-        float complex acc = 0.0f;
-        uint32_t n = b * os_factor;
-        for (uint32_t k = 0; k < os_factor; ++k, ++n)
-          acc += sc[n] * downchirp[n];
-        fft_in[b] = acc;
-      }
+      /* No CFO: helper skips phase rotation. */
+      dechirp_and_accumulate(sc, downchirp, n_bins, os_factor, fft_in, 0, NULL,
+                             0.0f);
       lora_fft_exec_fwd(&ctx->fft, fft_in, fft_out);
       float max_mag = 0.0f;
       uint32_t max_idx = 0;
@@ -176,17 +193,9 @@ void lora_fft_demod(lora_fft_demod_ctx_t *ctx,
 #else
     const float complex *restrict sc = chips + s * sps;
 #endif
-    for (uint32_t b = 0; b < n_bins; ++b) {
-      float complex acc = 0.0f;
-      uint32_t n = b * os_factor;
-      for (uint32_t k = 0; k < os_factor; ++k, ++n) {
-        float complex c = sc[n] * downchirp[n];
-        c *= phase;
-        phase *= step;
-        acc += c;
-      }
-      fft_in[b] = acc;
-    }
+    /* CFO present: rotate each chip by the evolving phase. */
+    dechirp_and_accumulate(sc, downchirp, n_bins, os_factor, fft_in, 1, &phase,
+                           step);
     lora_fft_exec_fwd(&ctx->fft, fft_in, fft_out);
     float max_mag = 0.0f;
     uint32_t max_idx = 0;
