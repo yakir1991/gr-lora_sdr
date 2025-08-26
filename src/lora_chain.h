@@ -9,6 +9,17 @@
 #include "lora_fixed.h"
 #endif
 
+typedef enum {
+    LORA_OK = 0,             /* Success */
+    LORA_ERR_INVALID_ARG,    /* NULL pointer or invalid parameter */
+    LORA_ERR_PAYLOAD_TOO_LARGE, /* Payload exceeds supported size */
+    LORA_ERR_TOO_MANY_SYMBOLS,  /* Input chips produce too many symbols */
+    LORA_ERR_BUFFER_TOO_SMALL,  /* Output buffer too small */
+    LORA_ERR_CRC_MISMATCH,   /* CRC verification failed */
+    LORA_ERR_IO,             /* I/O read/write failure */
+    LORA_ERR_OOM,            /* Memory allocation failed */
+} lora_status;
+
 typedef struct {
     uint8_t sf;
     uint32_t bw;
@@ -34,17 +45,17 @@ typedef struct {
 /*
  * Caller provides output buffers sized at least by macros in lora_config.h.
  */
-int lora_tx_chain(const uint8_t *restrict payload, size_t payload_len,
-                  float complex *restrict chips, size_t chips_buf_len,
-                  size_t *restrict nchips_out,
-                  const lora_chain_cfg *cfg,
-                  lora_tx_workspace *ws);
-int lora_rx_chain(const float complex *restrict chips, size_t nchips,
-                  uint8_t *restrict payload, size_t payload_buf_len,
-                  size_t *restrict payload_len_out,
-                  const lora_chain_cfg *cfg,
-                  lora_rx_workspace *ws);
+lora_status lora_tx_chain(const uint8_t *restrict payload, size_t payload_len,
+                          float complex *restrict chips, size_t chips_buf_len,
+                          size_t *restrict nchips_out,
+                          const lora_chain_cfg *cfg,
+                          lora_tx_workspace *ws);
+lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
+                          uint8_t *restrict payload, size_t payload_buf_len,
+                          size_t *restrict payload_len_out,
+                          const lora_chain_cfg *cfg,
+                          lora_rx_workspace *ws);
 
-int lora_tx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);
-int lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);
+lora_status lora_tx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);
+lora_status lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);
 

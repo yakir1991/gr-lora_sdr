@@ -68,12 +68,12 @@ int main(int argc, char **argv)
     for (int i = 0; i < ITERATIONS; ++i)
     {
         size_t nchips = 0, out_len = 0;
-        int tx_ret = lora_tx_chain(payload, sizeof payload, chips, LORA_MAX_CHIPS, &nchips, &cfg, &tx_ws);
-        if (tx_ret)
+        lora_status tx_ret = lora_tx_chain(payload, sizeof payload, chips, LORA_MAX_CHIPS, &nchips, &cfg, &tx_ws);
+        if (tx_ret != LORA_OK)
         {
             fprintf(stderr,
                     "Iteration %d: lora_tx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",
-                    i, tx_ret, nchips, out_len);
+                    i, (int)tx_ret, nchips, out_len);
             return EXIT_FAILURE;
         }
         if (nchips == 0 || nchips > LORA_MAX_CHIPS)
@@ -82,10 +82,10 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        int rx_ret = lora_rx_chain(chips, nchips, out, sizeof out, &out_len, &cfg, &rx_ws);
-        if (rx_ret)
+        lora_status rx_ret = lora_rx_chain(chips, nchips, out, sizeof out, &out_len, &cfg, &rx_ws);
+        if (rx_ret != LORA_OK)
         {
-            fprintf(stderr, "Iteration %d: lora_rx_chain failed (%d, nchips=%zu, out_len=%zu)\n", i, rx_ret, nchips, out_len);
+            fprintf(stderr, "Iteration %d: lora_rx_chain failed (%d, nchips=%zu, out_len=%zu)\n", i, (int)rx_ret, nchips, out_len);
             return EXIT_FAILURE;
         }
         if (out_len != sizeof payload)
