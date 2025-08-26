@@ -38,40 +38,47 @@ if(ENABLE_SANITIZERS AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 if(LORA_LITE_USE_LIQUID_FFT OR LORA_LITE_FIXED_POINT)
-  if(USE_SYSTEM_LIQUID_DSP)
-    # Prefer an in-tree submodule if present; fall back to a manual search.
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/liquid-dsp/CMakeLists.txt)
-      add_subdirectory(liquid-dsp)
-    else()
-      find_library(LIQUID_LIB liquid)
-      find_path(LIQUID_INCLUDE_DIR liquid/liquid.h)
-      if(NOT LIQUID_LIB OR NOT LIQUID_INCLUDE_DIR)
-        message(FATAL_ERROR "liquid-dsp library not found")
-      endif()
-      add_library(liquid UNKNOWN IMPORTED)
-      set_target_properties(liquid PROPERTIES
-        IMPORTED_LOCATION ${LIQUID_LIB}
-        INTERFACE_INCLUDE_DIRECTORIES ${LIQUID_INCLUDE_DIR})
+  # Local CMake modules for Liquid detection
+  list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/liquid-dsp/CMakeLists.txt)
+    # Use in-tree submodule if present
+    add_subdirectory(liquid-dsp)
+    if(TARGET liquid AND NOT TARGET Liquid::liquid)
+      add_library(Liquid::liquid ALIAS liquid)
     endif()
   else()
-    include(FetchContent)
+    # Try to find a system Liquid installation; fall back to manual search
+    find_package(Liquid QUIET)
+    include(cmake/LiquidFallback.cmake)
 
-    # Fetch the liquid-dsp library for DSP utilities
-    FetchContent_Declare(
-      liquid_dsp
-      GIT_REPOSITORY https://github.com/jgaeddert/liquid-dsp.git
-      GIT_TAG v1.3.2
-      GIT_SHALLOW TRUE
-    )
+    if(NOT TARGET Liquid::liquid)
+      if(USE_SYSTEM_LIQUID_DSP)
+        message(FATAL_ERROR "Liquid-DSP not found. Install libliquid-dev or pass LIQUID_* hints.")
+      endif()
 
-    # Disable optional components to keep the build lightweight
-    set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-    set(BUILD_AUTOTESTS OFF CACHE BOOL "" FORCE)
-    set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
-    set(BUILD_SANDBOX OFF CACHE BOOL "" FORCE)
-    set(BUILD_DOC OFF CACHE BOOL "" FORCE)
+      include(FetchContent)
 
-    FetchContent_MakeAvailable(liquid_dsp)
+      # Fetch the liquid-dsp library for DSP utilities
+      FetchContent_Declare(
+        liquid_dsp
+        GIT_REPOSITORY https://github.com/jgaeddert/liquid-dsp.git
+        GIT_TAG v1.3.2
+        GIT_SHALLOW TRUE
+      )
+
+      # Disable optional components to keep the build lightweight
+      set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+      set(BUILD_AUTOTESTS OFF CACHE BOOL "" FORCE)
+      set(BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+      set(BUILD_SANDBOX OFF CACHE BOOL "" FORCE)
+      set(BUILD_DOC OFF CACHE BOOL "" FORCE)
+
+      FetchContent_MakeAvailable(liquid_dsp)
+      if(TARGET liquid AND NOT TARGET Liquid::liquid)
+        add_library(Liquid::liquid ALIAS liquid)
+      endif()
+    endif()
   endif()
 endif()
 
