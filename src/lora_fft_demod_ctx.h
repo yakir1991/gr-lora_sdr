@@ -4,8 +4,8 @@
 #include "lora_config.h"
 #include "lora_fixed.h"
 #include "lora_fft.h"
-#include <complex.h>
 #include <stddef.h>
+#include <complex.h>
 #include <stdint.h>
 
 /* Context for the FFT-based LoRa demodulator.  All state required for
@@ -47,7 +47,12 @@ void lora_fft_demod_destroy(lora_fft_demod_ctx_t *ctx);
  * indices in the symbols array.  All working buffers are taken from the
  * context and no dynamic allocation occurs. */
 void lora_fft_process(lora_fft_demod_ctx_t *ctx,
-                      const lora_q15_complex *restrict chips, size_t nsym,
+#ifdef LORA_LITE_FIXED_POINT
+                      const lora_q15_complex *restrict chips,
+#else
+                      const float complex *restrict chips,
+#endif
+                      size_t nsym,
                       uint32_t *restrict symbols);
 
 #endif /* LORA_FFT_DEMOD_CTX_H */

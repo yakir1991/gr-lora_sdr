@@ -27,6 +27,9 @@ function(lora_add_test NAME)
   endif()
 endfunction()
 
+# Expose project headers to all tests (needed for lora_fft.h, ctx headers, etc.)
+include_directories(${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/include)
+
 add_test(NAME hello_world COMMAND hello_world)
 if(LORA_LITE_ENABLE_LOGGING)
   set_tests_properties(hello_world PROPERTIES PASS_REGULAR_EXPRESSION "Hello, world!")
