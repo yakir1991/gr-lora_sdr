@@ -7,6 +7,20 @@ cmake --build build -j"$(nproc)"
 ctest --test-dir build -V
 ```
 
+### Troubleshooting (Liquid-DSP)
+On some distros `libliquid-dev` installs headers/libs but no `liquid-dsp.pc`.
+Our CMake includes a fallback that detects `/usr/include/liquid/liquid.h`
+and `/usr/lib/x86_64-linux-gnu/libliquid.so` and creates `Liquid::liquid`.
+
+If detection still fails, you can override explicitly:
+```bash
+cmake -S . -B build \
+  -DLORA_LITE_USE_LIQUID_FFT=ON -DBUILD_TESTING=ON \
+  -DLiquid_INCLUDE_DIR=/usr/include \
+  -DLiquid_LIBRARY=/usr/lib/x86_64-linux-gnu/libliquid.so
+```
+Or set `PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig` if you do have a `.pc`.
+
 ### End-to-End file test
 ```bash
 ctest --test-dir build -R test_end_to_end_file --output-on-failure
