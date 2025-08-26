@@ -15,9 +15,20 @@ endif()
 
 option(LORA_LITE_ENABLE_LOGGING "Enable logging output" ON)
 option(LORA_LITE_BENCHMARK "Build benchmark harnesses" OFF)
+option(ENABLE_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
 
 if(LORA_LITE_BENCHMARK)
   add_compile_options(-O3 -DNDEBUG)
+endif()
+
+if(ENABLE_SANITIZERS AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+  add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
+  if(COMMAND add_link_options)
+    add_link_options(-fsanitize=address,undefined)
+  else()
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address,undefined")
+  endif()
 endif()
 
 if(LORA_LITE_USE_LIQUID_FFT OR LORA_LITE_FIXED_POINT)
