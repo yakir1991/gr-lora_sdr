@@ -1,4 +1,5 @@
 # Embedded-friendly defaults: -Os, LTO, GC sections, extra warnings
+# Pass -DLORA_LITE_EMB_THROUGHPUT=ON to favor throughput over size.
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99 -Os -ffunction-sections -fdata-sections -flto -Wall -Wextra -Wpedantic -Wconversion -Wshadow")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--gc-sections")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--gc-sections")

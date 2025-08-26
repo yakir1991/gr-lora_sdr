@@ -96,6 +96,15 @@ cmake -S . -B build-emb -C cmake/embedded_profile.cmake -DBUILD_TESTING=ON
 cmake --build build-emb -j"$(nproc)"
 ```
 
+To favor throughput over code size on embedded targets, enable the
+`LORA_LITE_EMB_THROUGHPUT` flag, which adds `-O3 -DNDEBUG -fno-math-errno -fno-trapping-math`:
+
+```bash
+cmake -S . -B build-emb -C cmake/embedded_profile.cmake \
+  -DLORA_LITE_EMB_THROUGHPUT=ON -DBUILD_TESTING=ON
+cmake --build build-emb -j"$(nproc)"
+```
+
 ### FFT Matrix Benchmark (KISS vs Liquid)
 ```bash
 ./scripts/bench_matrix.sh
@@ -121,7 +130,9 @@ A workflow at `.github/workflows/embedded-bench.yml` runs:
 
 ### Notes
 - To use Liquid-DSP locally: `sudo apt install -y libliquid-dev`.
-- For embedded targets, prefer the `embedded_profile.cmake` preset, and enable `-DLORA_LITE_FIXED_POINT=ON` when possible.
+- For embedded targets, prefer the `embedded_profile.cmake` preset, enable
+  `-DLORA_LITE_FIXED_POINT=ON` when possible, and use
+  `-DLORA_LITE_EMB_THROUGHPUT=ON` to favor throughput over code size.
 
 ### Embedded profile: Liquid FFT default & baseline
 When building with the embedded profile:
