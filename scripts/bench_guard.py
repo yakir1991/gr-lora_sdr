@@ -34,7 +34,13 @@ def main():
 
     # defaults
     cfg = {"min_pps_off": 0.0, "min_pps_on": 0.0, "min_ratio_on_over_off": 0.90}
+
+    # choose config file (bench/targets.json if present, otherwise embedded/fixed)
     cfg_path = os.path.join("bench", "targets.json")
+    if not os.path.isfile(cfg_path):
+        fixed = os.getenv("LORA_LITE_FIXED_POINT", "").upper() in ("1", "ON", "TRUE")
+        cfg_name = "targets.fixed.embedded.json" if fixed else "targets.embedded.json"
+        cfg_path = os.path.join("bench", cfg_name)
     if os.path.isfile(cfg_path):
         with open(cfg_path) as f:
             cfg.update(json.load(f))

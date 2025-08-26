@@ -125,14 +125,24 @@ cmake --build build-emb-o3 -j"$(nproc)"
 ```
 
 ### Performance Guard (catch regressions)
-- Default thresholds live in `bench/targets.json`.
-- Fixed-point thresholds are provided in `bench/targets.fixed.json`.
-- To check a benchmark run against the fixed thresholds, copy or symlink the
-  desired file to `bench/targets.json` and run:
+- Default thresholds live in `bench/targets.embedded.json`.
+- When the benchmark is built with fixed-point (`LORA_LITE_FIXED_POINT=ON`),
+  the guard automatically loads `bench/targets.fixed.embedded.json`:
+
+```json
+{ "min_pps_off": 7300.0, "min_pps_on": 8000.0, "min_ratio_on_over_off": 1.08 }
+```
+
+Run the guard on a results folder:
+
 ```bash
 ./scripts/bench_guard.py bench_out/<timestamp>
+# fixed-point example
+LORA_LITE_FIXED_POINT=ON ./scripts/bench_guard.py bench_out/<timestamp>
 ```
+
 - You can also override thresholds per-run:
+
 ```bash
 MIN_PPS_OFF=12000 MIN_PPS_ON=12000 MIN_RATIO=0.97 \
   ./scripts/bench_guard.py bench_out/<timestamp>
@@ -169,20 +179,26 @@ LATEST_DIR=$(ls -1d bench_out/* | tail -n1)
 ./scripts/bench_compare.py "$LATEST_DIR"
 ```
 
-Guard thresholds for embedded live in `bench/targets.json` (see
-`bench/targets.fixed.json` for fixed-point runs):
+Guard thresholds for embedded live in `bench/targets.embedded.json`:
 ```json
 { "min_pps_off": 8500.0, "min_pps_on": 9600.0, "min_ratio_on_over_off": 1.06 }
+```
+For fixed-point builds (`LORA_LITE_FIXED_POINT=ON`), the guard uses
+`bench/targets.fixed.embedded.json`:
+```json
+{ "min_pps_off": 7300.0, "min_pps_on": 8000.0, "min_ratio_on_over_off": 1.08 }
 ```
 Run the guard on a results folder:
 ```bash
 ./scripts/bench_guard.py "$LATEST_DIR"
+# fixed-point:
+LORA_LITE_FIXED_POINT=ON ./scripts/bench_guard.py "$LATEST_DIR"
 ```
 
 #### CI matrix: host vs embedded
 The workflow `.github/workflows/embedded-bench.yml` runs both host and embedded profiles:
 - Host: build, tests, bench, compare (no guard).
-- Embedded: build with `-C cmake/embedded_profile.cmake`, bench, compare, and **guard** with thresholds from `bench/targets.embedded.json`.
+- Embedded: build with `-C cmake/embedded_profile.cmake`, bench, compare, and **guard** (automatically loads `bench/targets.fixed.embedded.json` when `LORA_LITE_FIXED_POINT=ON`).
 
 #### ASAN profile (CI-only by default)
 A third CI profile `embedded-asan` builds with AddressSanitizer (no LTO, `RelWithDebInfo`), runs `ctest -V`, and performs a short smoke-run of `bench_lora_chain` to exercise hot paths. Results are uploaded under `bench-results-embedded-asan`.
