@@ -1,11 +1,14 @@
 #include "lora_chain.h"
-#include "lora_fft_demod.h"
-#include "lora_fixed.h"
-#include "lora_whitening.h"
-#include "lora_add_crc.h"
 #include "lora_config.h"
 #include "lora_io.h"
+#include "lora_whitening.h"
+#include "lora_add_crc.h"
 #include <string.h>
+
+#ifdef LORA_LITE_FIXED_POINT
+#include "lora_fft_demod.h"
+#include "lora_fixed.h"
+#endif
 
 int lora_rx_chain(const float complex *restrict chips, size_t nchips,
                   uint8_t *restrict payload, size_t payload_buf_len,
@@ -22,6 +25,9 @@ int lora_rx_chain(const float complex *restrict chips, size_t nchips,
     if (nsym > LORA_MAX_NSYM)
         return -1;
 
+    uint32_t symbols[LORA_MAX_NSYM];
+
+#ifdef LORA_LITE_FIXED_POINT
     lora_q15_complex qchips[LORA_MAX_CHIPS];
     const float q15_scale = 32767.0f;
     for (size_t i = 0; i < nchips && i < LORA_MAX_CHIPS; ++i) {
@@ -38,8 +44,10 @@ int lora_rx_chain(const float complex *restrict chips, size_t nchips,
         qchips[i].r = (int16_t)(re * q15_scale + (re >= 0 ? 0.5f : -0.5f));
         qchips[i].i = (int16_t)(im * q15_scale + (im >= 0 ? 0.5f : -0.5f));
     }
-    uint32_t symbols[LORA_MAX_NSYM];
     lora_fft_demod(qchips, symbols, sf, samp_rate, bw, 0.0f, nsym);
+#else
+#error "lora_rx_chain requires LORA_LITE_FIXED_POINT"
+#endif
 
     uint8_t whitened[LORA_MAX_NSYM];
     for (size_t i = 0; i < nsym; ++i)
