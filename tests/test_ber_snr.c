@@ -3,6 +3,12 @@
 #include <math.h>
 #include <complex.h>
 #include <string.h>
+#ifdef _WIN32
+#include <direct.h>
+#define getcwd _getcwd
+#else
+#include <unistd.h>
+#endif
 #include "lora_chain.h"
 #include "lora_fft_demod.h"
 #include "lora_whitening.h"
@@ -31,8 +37,11 @@ int main(void) {
 
     FILE *csv = fopen("results/ber_snr.csv", "w");
     if (!csv) {
-        perror("fopen");
-        return 1;
+        perror("results/ber_snr.csv");
+        char cwd[256];
+        if (getcwd(cwd, sizeof cwd))
+            fprintf(stderr, "cwd: %s\n", cwd);
+        return EXIT_FAILURE;
     }
     fprintf(csv, "snr_db,ber\n");
 
@@ -44,14 +53,17 @@ int main(void) {
     if (!chips) {
         fprintf(stderr, "malloc failed\n");
         fclose(csv);
-        return 1;
+        return EXIT_FAILURE;
     }
     size_t nchips = 0;
-    if (lora_tx_chain(payload, payload_len, chips, LORA_MAX_CHIPS, &nchips) != 0) {
-        fprintf(stderr, "lora_tx_chain failed\n");
+    int tx_ret = lora_tx_chain(payload, payload_len, chips, LORA_MAX_CHIPS, &nchips);
+    if (tx_ret) {
+        fprintf(stderr,
+                "Iteration 0: lora_tx_chain failed (ret=%d, nchips=%zu, out_len=0)\n",
+                tx_ret, nchips);
         fclose(csv);
         free(chips);
-        return 1;
+        return EXIT_FAILURE;
     }
 
     int fail = 0;
@@ -70,7 +82,7 @@ int main(void) {
             fprintf(stderr, "malloc failed\n");
             fclose(csv);
             free(chips);
-            return 1;
+            return EXIT_FAILURE;
         }
         for (size_t n = 0; n < nchips; ++n) {
             float nr = noise_std * randn(&rng);
@@ -81,7 +93,16 @@ int main(void) {
         // Run full RX chain for side effects / sanity
         uint8_t tmp_payload[LORA_MAX_PAYLOAD_LEN];
         size_t tmp_len = 0;
-        (void)lora_rx_chain(noisy, nchips, tmp_payload, sizeof(tmp_payload), &tmp_len);
+        int rx_ret = lora_rx_chain(noisy, nchips, tmp_payload, sizeof(tmp_payload), &tmp_len);
+        if (rx_ret) {
+            fprintf(stderr,
+                    "Iteration %zu: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",
+                    i, rx_ret, nchips, tmp_len);
+            free(noisy);
+            free(chips);
+            fclose(csv);
+            return EXIT_FAILURE;
+        }
 
         // Demodulate to compute BER
         uint32_t symbols[LORA_MAX_NSYM];
@@ -110,7 +131,7 @@ int main(void) {
 
     if (fail) {
         fprintf(stderr, "BER exceeded threshold\n");
-        return 1;
+        return EXIT_FAILURE;
     }
     printf("BER vs SNR test passed\n");
     return 0;

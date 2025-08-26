@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <complex.h>
 #include "lora_log.h"
 #include "lora_chain.h"
@@ -54,28 +55,34 @@ int main(void) {
     static uint8_t rx[LORA_MAX_PAYLOAD_LEN];
     size_t nchips = 0, rx_len = 0;
 
-    if (lora_tx_chain(payload, sizeof(payload), chips, LORA_MAX_CHIPS, &nchips) != 0) {
-        LORA_LOG_ERR("TX chain failed");
-        return 1;
+    int tx_ret = lora_tx_chain(payload, sizeof(payload), chips, LORA_MAX_CHIPS, &nchips);
+    if (tx_ret) {
+        fprintf(stderr,
+                "Iteration 0: lora_tx_chain failed (ret=%d, nchips=%zu, out_len=0)\n",
+                tx_ret, nchips);
+        return EXIT_FAILURE;
     }
     if (nchips != 768) {
         LORA_LOG_ERR("Unexpected chip count %zu", nchips);
-        return 1;
+        return EXIT_FAILURE;
     }
     for (size_t i = 0; i < 32; ++i) {
         q15c q = { to_q15(crealf(chips[i])), to_q15(cimagf(chips[i])) };
         if (q.r != expected_chips[i].r || q.i != expected_chips[i].i) {
             LORA_LOG_ERR("Chip mismatch at %zu", i);
-            return 1;
+            return EXIT_FAILURE;
         }
     }
-    if (lora_rx_chain(chips, nchips, rx, sizeof(rx), &rx_len) != 0) {
-        LORA_LOG_ERR("RX chain failed");
-        return 1;
+    int rx_ret = lora_rx_chain(chips, nchips, rx, sizeof(rx), &rx_len);
+    if (rx_ret) {
+        fprintf(stderr,
+                "Iteration 0: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",
+                rx_ret, nchips, rx_len);
+        return EXIT_FAILURE;
     }
     if (rx_len != sizeof(payload) || memcmp(rx, payload, sizeof(payload)) != 0) {
         LORA_LOG_ERR("Payload mismatch");
-        return 1;
+        return EXIT_FAILURE;
     }
     LORA_LOG_INFO("Embedded loopback test passed");
     return 0;
