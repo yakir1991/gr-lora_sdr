@@ -82,7 +82,7 @@ lora_add_test(test_lora_graymap
 lora_add_test(test_lora_mod_fft
   SOURCES test_lora_mod_fft.c
   LIBS lora_mod lora_fft_demod $<$<NOT:$<BOOL:${LORA_LITE_FIXED_POINT}>>:m>
-  PASS_REGEX "Mod/demod round-trip passed")
+  PASS_REGEX "FFT demod regression test passed")
 
 lora_add_test(test_lora_frame_sync
   SOURCES test_lora_frame_sync.c
