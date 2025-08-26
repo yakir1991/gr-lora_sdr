@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <complex.h>
 #include "lora_log.h"
@@ -10,16 +11,22 @@ int main(void)
     const uint8_t payload[] = { 'A', 'B', 'C' };
     static float complex chips[LORA_MAX_CHIPS];
     size_t nchips = 0;
-    if (lora_tx_chain(payload, sizeof(payload), chips, LORA_MAX_CHIPS, &nchips) != 0) {
-        LORA_LOG_ERR("TX chain failed");
-        return 1;
+    int tx_ret = lora_tx_chain(payload, sizeof(payload), chips, LORA_MAX_CHIPS, &nchips);
+    if (tx_ret) {
+        fprintf(stderr,
+                "Iteration 0: lora_tx_chain failed (ret=%d, nchips=%zu, out_len=0)\n",
+                tx_ret, nchips);
+        return EXIT_FAILURE;
     }
 
     static uint8_t out[LORA_MAX_PAYLOAD_LEN];
     size_t out_len = 0;
-    if (lora_rx_chain(chips, nchips, out, sizeof(out), &out_len) != 0) {
-        LORA_LOG_ERR("RX chain failed");
-        return 1;
+    int rx_ret = lora_rx_chain(chips, nchips, out, sizeof(out), &out_len);
+    if (rx_ret) {
+        fprintf(stderr,
+                "Iteration 0: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",
+                rx_ret, nchips, out_len);
+        return EXIT_FAILURE;
     }
 
     int ok = (out_len == sizeof(payload)) && (memcmp(out, payload, sizeof(payload)) == 0);
@@ -29,7 +36,7 @@ int main(void)
         return 0;
     } else {
         LORA_LOG_INFO("Payload mismatch");
-        return 1;
+        return EXIT_FAILURE;
     }
 }
 

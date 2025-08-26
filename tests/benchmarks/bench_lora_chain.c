@@ -58,7 +58,9 @@ int main(void)
         int tx_ret = lora_tx_chain(payload, sizeof payload, chips, LORA_MAX_CHIPS, &nchips);
         if (tx_ret)
         {
-            fprintf(stderr, "Iteration %d: lora_tx_chain failed (%d, nchips=%zu)\n", i, tx_ret, nchips);
+            fprintf(stderr,
+                    "Iteration %d: lora_tx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",
+                    i, tx_ret, nchips, out_len);
             return EXIT_FAILURE;
         }
         if (nchips == 0 || nchips > LORA_MAX_CHIPS)

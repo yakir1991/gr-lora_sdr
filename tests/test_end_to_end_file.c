@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "lora_log.h"
 #include <stdint.h>
 #include <string.h>
@@ -13,7 +14,7 @@ int main(void)
     FILE *fi = fopen(in_path, "rb");
     if (!fi) {
         LORA_LOG_ERR("fopen input");
-        return 1;
+        return EXIT_FAILURE;
     }
     lora_io_t in_io;
     lora_io_init_file(&in_io, fi);
@@ -29,30 +30,33 @@ int main(void)
 
     static float complex chips[LORA_MAX_CHIPS];
     size_t nchips = 0;
-    if (lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips) != 0) {
-        LORA_LOG_ERR("lora_tx_chain failed");
-        return 1;
+    int tx_ret = lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips);
+    if (tx_ret) {
+        fprintf(stderr,
+                "Iteration 0: lora_tx_chain failed (ret=%d, nchips=%zu, out_len=0)\n",
+                tx_ret, nchips);
+        return EXIT_FAILURE;
     }
 
     const char *bin_path = "tx_capture.bin";
     FILE *fb = fopen(bin_path, "wb");
     if (!fb) {
         LORA_LOG_ERR("fopen bin");
-        return 1;
+        return EXIT_FAILURE;
     }
     lora_io_t bin_io;
     lora_io_init_file(&bin_io, fb);
     if (bin_io.write(bin_io.ctx, (const uint8_t *)chips,
                      nchips * sizeof(float complex)) != nchips * sizeof(float complex)) {
         fclose(fb);
-        return 1;
+        return EXIT_FAILURE;
     }
     fclose(fb);
 
     fb = fopen(bin_path, "rb");
     if (!fb) {
         LORA_LOG_ERR("fopen bin read");
-        return 1;
+        return EXIT_FAILURE;
     }
     lora_io_init_file(&bin_io, fb);
     static float complex rx_chips[LORA_MAX_CHIPS];
@@ -61,13 +65,16 @@ int main(void)
     fclose(fb);
     size_t rdchips = rdbytes / sizeof(float complex);
     if (rdchips != nchips)
-        return 1;
+        return EXIT_FAILURE;
 
     static uint8_t out[LORA_MAX_PAYLOAD_LEN];
     size_t out_len = 0;
-    if (lora_rx_chain(rx_chips, nchips, out, sizeof(out), &out_len) != 0) {
-        LORA_LOG_ERR("lora_rx_chain failed");
-        return 1;
+    int rx_ret = lora_rx_chain(rx_chips, nchips, out, sizeof(out), &out_len);
+    if (rx_ret) {
+        fprintf(stderr,
+                "Iteration 0: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",
+                rx_ret, nchips, out_len);
+        return EXIT_FAILURE;
     }
 
     int ok = (out_len == rd) && (memcmp(out, payload, rd) == 0);
@@ -78,6 +85,6 @@ int main(void)
         return 0;
     } else {
         LORA_LOG_INFO("End-to-end file test FAILED");
-        return 1;
+        return EXIT_FAILURE;
     }
 }
