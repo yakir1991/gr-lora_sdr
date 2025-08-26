@@ -30,7 +30,8 @@ int main(void)
 
     static float complex chips[LORA_MAX_CHIPS];
     size_t nchips = 0;
-    int tx_ret = lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips);
+    const lora_chain_cfg cfg = {.sf = 8, .bw = 125000, .samp_rate = 125000};
+    int tx_ret = lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips, &cfg);
     if (tx_ret) {
         fprintf(stderr,
                 "Iteration 0: lora_tx_chain failed (ret=%d, nchips=%zu, out_len=0)\n",
@@ -69,7 +70,7 @@ int main(void)
 
     static uint8_t out[LORA_MAX_PAYLOAD_LEN];
     size_t out_len = 0;
-    int rx_ret = lora_rx_chain(rx_chips, nchips, out, sizeof(out), &out_len);
+    int rx_ret = lora_rx_chain(rx_chips, nchips, out, sizeof(out), &out_len, &cfg);
     if (rx_ret) {
         fprintf(stderr,
                 "Iteration 0: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",

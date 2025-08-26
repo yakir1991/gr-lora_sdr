@@ -8,14 +8,15 @@
 
 int lora_tx_chain(const uint8_t *restrict payload, size_t payload_len,
                   float complex *restrict chips, size_t chips_buf_len,
-                  size_t *restrict nchips_out)
+                  size_t *restrict nchips_out,
+                  const lora_chain_cfg *cfg)
 {
-    if (!payload || !chips || !nchips_out || chips_buf_len == 0)
+    if (!payload || !chips || !nchips_out || chips_buf_len == 0 || !cfg)
         return -1;
 
-    const uint8_t sf = 8;
-    const uint32_t bw = 125000;
-    const uint32_t samp_rate = 125000;
+    const uint8_t sf = cfg->sf;
+    const uint32_t bw = cfg->bw;
+    const uint32_t samp_rate = cfg->samp_rate;
 
     if (payload_len > LORA_MAX_PAYLOAD_LEN)
         return -1;
@@ -52,9 +53,9 @@ int lora_tx_chain(const uint8_t *restrict payload, size_t payload_len,
     return 0;
 }
 
-int lora_tx_run(lora_io_t *in, lora_io_t *out)
+int lora_tx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg)
 {
-    if (!in || !out)
+    if (!in || !out || !cfg)
         return -1;
 
     uint8_t payload[LORA_MAX_PAYLOAD_LEN];
@@ -68,7 +69,7 @@ int lora_tx_run(lora_io_t *in, lora_io_t *out)
 
     float complex chips[LORA_MAX_CHIPS];
     size_t nchips;
-    if (lora_tx_chain(payload, total, chips, LORA_MAX_CHIPS, &nchips) != 0)
+    if (lora_tx_chain(payload, total, chips, LORA_MAX_CHIPS, &nchips, cfg) != 0)
         return -1;
 
     size_t bytes = nchips * sizeof(float complex);

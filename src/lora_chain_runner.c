@@ -53,7 +53,8 @@ int main(int argc, char **argv) {
 
     static float complex chips[LORA_MAX_CHIPS];
     size_t nchips;
-    if (lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips) != 0)
+    const lora_chain_cfg cfg = {.sf = 8, .bw = 125000, .samp_rate = 125000};
+    if (lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips, &cfg) != 0)
         return 1;
 
     const float snr_db = 30.0f;
@@ -66,7 +67,7 @@ int main(int argc, char **argv) {
 
     static uint8_t out_payload[LORA_MAX_PAYLOAD_LEN];
     size_t out_len;
-    if (lora_rx_chain(chips, nchips, out_payload, sizeof(out_payload), &out_len) != 0)
+    if (lora_rx_chain(chips, nchips, out_payload, sizeof(out_payload), &out_len, &cfg) != 0)
         return 1;
 
     FILE *fo = fopen(out_path, "wb");
