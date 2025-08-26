@@ -24,6 +24,7 @@ typedef struct {
   uint32_t fs;       /* sample rate */
   uint32_t bw;       /* signal bandwidth */
   uint32_t n_bins;   /* number of FFT bins */
+  uint32_t fft_len;  /* FFT length (same as n_bins) */
   uint32_t os_factor;/* oversampling factor */
   uint32_t sps;      /* samples per symbol */
 
