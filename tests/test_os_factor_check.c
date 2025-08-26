@@ -17,8 +17,8 @@ int main(void) {
     }
 
     unsigned char buf[1024];
-    lora_fft_ctx_t ctx;
-    if (lora_fft_init(&ctx, sf, fs, bw, buf, sizeof(buf)) != -1) {
+    lora_fft_demod_ctx_t ctx;
+    if (lora_fft_demod_init(&ctx, sf, fs, bw, buf, sizeof(buf)) != -1) {
         LORA_LOG_INFO("Init check failed");
         return 1;
     }

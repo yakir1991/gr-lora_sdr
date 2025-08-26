@@ -152,15 +152,15 @@ lora_add_test(test_full_chain_compare
   WORKING_DIR ${CMAKE_SOURCE_DIR})
 
 lora_add_test(test_fixed_float_float
-  SOURCES test_fixed_float_equiv.c ../src/lora_mod.c ../src/lora_fft_demod.c ../src/lora_fft_demod_ctx.c ../src/lora_utils.c ../legacy_gr_lora_sdr/lib/kiss_fft.c
+  SOURCES test_fixed_float_equiv.c ../src/lora_mod.c ../src/lora_fft_demod.c ../src/lora_fft_demod_ctx.c ../src/lora_utils.c ../src/lora_fft.c ../src/q15_to_cf.c
   LIBS m
-  INCLUDES ../src ../legacy_gr_lora_sdr/lib ${CMAKE_CURRENT_SOURCE_DIR})
+  INCLUDES ../src ../include ${CMAKE_CURRENT_SOURCE_DIR})
 
 lora_add_test(test_fixed_float_fixed
-  SOURCES test_fixed_float_equiv.c ../src/lora_mod.c ../src/lora_fft_demod.c ../src/lora_fft_demod_ctx.c ../src/lora_utils.c ../legacy_gr_lora_sdr/lib/kiss_fft.c
+  SOURCES test_fixed_float_equiv.c ../src/lora_mod.c ../src/lora_fft_demod.c ../src/lora_fft_demod_ctx.c ../src/lora_utils.c ../src/lora_fft.c ../src/q15_to_cf.c
   LIBS m
   DEFINITIONS LORA_LITE_FIXED_POINT
-  INCLUDES ../src ../legacy_gr_lora_sdr/lib ${CMAKE_CURRENT_SOURCE_DIR})
+  INCLUDES ../src ../include ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_test(NAME run_fixed_float_float
   COMMAND test_fixed_float_float ${CMAKE_CURRENT_BINARY_DIR}/float.bin)
