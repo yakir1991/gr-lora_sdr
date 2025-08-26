@@ -118,8 +118,15 @@ void lora_fft_process(lora_fft_ctx_t *ctx, const float complex *chips,
     return;
 
   uint32_t sps = ctx->sps;
-  double phase = ctx->cfo_phase;
-  double phase_inc = -2.0 * M_PI * ctx->cfo / (double)ctx->fs;
+  float complex phase = 1.0f;
+  float complex cfo_step = 1.0f;
+  double dphi = 0.0;
+
+  if (ctx->cfo != 0.0f) {
+    dphi = -2.0 * M_PI * ctx->cfo / (double)ctx->fs;
+    phase = cexpf(I * (float)ctx->cfo_phase);
+    cfo_step = cexpf(I * (float)dphi);
+  }
 
   for (size_t s = 0; s < nsym; ++s) {
     const float complex *symchips = &chips[s * sps];
@@ -133,11 +140,11 @@ void lora_fft_process(lora_fft_ctx_t *ctx, const float complex *chips,
 #endif
       if (ctx->cfo != 0.0f) {
 #ifndef LORA_LITE_FIXED_POINT
-        c *= cexpf(I * (float)phase);
+        c *= phase;
 #else
-        cf *= cexpf(I * (float)phase);
+        cf *= phase;
 #endif
-        phase += phase_inc;
+        phase *= cfo_step;
       }
 #ifdef LORA_LITE_LIQUID_FFT
 #ifndef LORA_LITE_FIXED_POINT
@@ -180,6 +187,7 @@ void lora_fft_process(lora_fft_ctx_t *ctx, const float complex *chips,
     symbols[s] = (max_idx / ctx->os_factor) & (ctx->n_bins - 1u);
   }
 
-  ctx->cfo_phase = phase;
+  if (ctx->cfo != 0.0f)
+    ctx->cfo_phase += (double)nsym * (double)sps * dphi;
 }
 
