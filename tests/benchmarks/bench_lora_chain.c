@@ -83,19 +83,13 @@ int main(void)
 
 #ifdef _WIN32
         size_t used = 0; /* _msize requires a pointer; omit for now */
+        if (i == 0)
+            fprintf(stderr, "Warning: memory usage metrics unavailable on this platform\n");
 #else
         size_t used = 0;
-#if defined(__GLIBC__) && defined(__GLIBC_PREREQ)
-#  if __GLIBC_PREREQ(2, 33)
+#if defined(__GLIBC__) && __GLIBC_PREREQ(2, 33)
         struct mallinfo2 mi = mallinfo2();
         used = mi.uordblks;
-#  elif __GLIBC_PREREQ(2, 0)
-        struct mallinfo mi = mallinfo();
-        used = mi.uordblks;
-#  else
-        if (i == 0)
-            fprintf(stderr, "Warning: glibc too old for memory usage metrics\n");
-#  endif
 #else
         if (i == 0)
             fprintf(stderr, "Warning: memory usage metrics unavailable on this platform\n");
