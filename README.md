@@ -15,3 +15,23 @@ sf,cr,ldro,fixed,logging,cycles,bytes_allocated,packets_per_sec
 ```
 
 Analyze the CSV to compare performance across configurations.
+
+## AArch64 QEMU benchmark
+
+Prerequisites:
+
+- `aarch64-linux-gnu-gcc` cross-compiler
+- `qemu-aarch64` user emulator
+
+Build and run the benchmark under QEMU:
+
+```sh
+./scripts/run_qemu_aarch64.sh
+```
+
+The script saves metrics to `results/arm_qemu.csv`. Compare them with host
+measurements using:
+
+```sh
+python scripts/analyze_bench.py results/host.csv results/arm_qemu.csv
+```
