@@ -1,0 +1,57 @@
+---
+name: ci
+
+'on':
+  push:
+  pull_request:
+
+jobs:
+  build-test-bench:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release, RelWithDebInfo]
+        use_liquid_fft: ['ON', 'OFF']
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            libboost-all-dev \
+            libfftw3-dev
+          if [ "${{ matrix.use_liquid_fft }}" = "ON" ]; then
+            sudo apt-get install -y libliquid-dev
+          fi
+
+      - name: Configure
+        run: cmake -S . -B build \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DLORA_LITE_USE_LIQUID_FFT=${{ matrix.use_liquid_fft }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        working-directory: build
+        run: ctest --output-on-failure
+
+      - name: Run benchmark
+        run: |
+          mkdir -p results profile
+          ./build/tests/bench_lora_chain > bench_results.csv
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-${{ matrix.build_type }}-${{ matrix.use_liquid_fft }}
+          path: |
+            bench_results.csv
+            results/*.csv
+            profile/*.txt
+          if-no-files-found: ignore
