@@ -4,12 +4,10 @@
 #include <string.h>
 #include <complex.h>
 #include <time.h>
+#include <malloc.h>
 
 #ifdef _WIN32
 #include <windows.h>
-#include <malloc.h>
-#else
-#include <malloc.h>
 #endif
 
 #include "lora_chain.h"
@@ -63,7 +61,11 @@ int main(void)
 #ifdef _WIN32
         size_t used = 0; /* _msize requires a pointer; omit for now */
 #else
+#if defined(__GLIBC__) && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 33))
+        struct mallinfo2 mi = mallinfo2();
+#else
         struct mallinfo mi = mallinfo();
+#endif
         size_t used = mi.uordblks;
 #endif
         if (used > peak_bytes)
