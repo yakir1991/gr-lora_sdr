@@ -6,9 +6,9 @@
 #include "lora_io.h"
 #include <string.h>
 
-int lora_tx_chain(const uint8_t *payload, size_t payload_len,
-                  float complex *chips, size_t chips_buf_len,
-                  size_t *nchips_out)
+int lora_tx_chain(const uint8_t *restrict payload, size_t payload_len,
+                  float complex *restrict chips, size_t chips_buf_len,
+                  size_t *restrict nchips_out)
 {
     if (!payload || !chips || !nchips_out || chips_buf_len == 0)
         return -1;

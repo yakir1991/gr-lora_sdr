@@ -3,11 +3,11 @@
 #include "lora_utils.h"
 #include "lora_log.h"
 #include <math.h>
-#include <string.h>
 
 #ifndef LORA_LITE_FIXED_POINT
 
-void lora_modulate(const uint32_t *symbols, float complex *chips, uint8_t sf,
+void lora_modulate(const uint32_t *restrict symbols,
+                   float complex *restrict chips, uint8_t sf,
                    uint32_t samp_rate, uint32_t bw, size_t nsym) {
   uint32_t rem = samp_rate % bw;
   if (rem) {
@@ -21,12 +21,10 @@ void lora_modulate(const uint32_t *symbols, float complex *chips, uint8_t sf,
   if (sps > LORA_MAX_SPS)
     return;
 
-  float complex tmp[LORA_MAX_SPS];
-
   for (size_t s = 0; s < nsym; ++s) {
     uint32_t sym = symbols[s] & (n_bins - 1u);
-    lora_build_upchirp(tmp, sym, sf, os_factor);
-    memcpy(&chips[s * sps], tmp, sps * sizeof(float complex));
+    float complex *out = chips + s * sps;
+    lora_build_upchirp(out, sym, sf, os_factor);
   }
 }
 
@@ -34,7 +32,8 @@ void lora_modulate(const uint32_t *symbols, float complex *chips, uint8_t sf,
 
 #include "lora_fixed.h"
 
-void lora_modulate(const uint32_t *symbols, float complex *chips, uint8_t sf,
+void lora_modulate(const uint32_t *restrict symbols,
+                   float complex *restrict chips, uint8_t sf,
                    uint32_t samp_rate, uint32_t bw, size_t nsym) {
   uint32_t rem = samp_rate % bw;
   if (rem) {
@@ -48,15 +47,19 @@ void lora_modulate(const uint32_t *symbols, float complex *chips, uint8_t sf,
   if (sps > LORA_MAX_SPS)
     return;
 
-  float complex ftmp[LORA_MAX_SPS];
-  lora_q15_complex qtmp[LORA_MAX_SPS];
+  const float q15_scale = 32767.0f;
+  const float q15_inv = 1.0f / 32767.0f;
 
   for (size_t s = 0; s < nsym; ++s) {
     uint32_t sym = symbols[s] & (n_bins - 1u);
-    lora_build_upchirp(ftmp, sym, sf, os_factor);
+    float complex *out = chips + s * sps;
+    lora_build_upchirp(out, sym, sf, os_factor);
     for (uint32_t n = 0; n < sps; ++n) {
-      qtmp[n] = lora_float_to_q15(ftmp[n]);
-      chips[s * sps + n] = lora_q15_to_float(qtmp[n]);
+      float re = crealf(out[n]);
+      float im = cimagf(out[n]);
+      int16_t qr = (int16_t)(re * q15_scale + (re >= 0 ? 0.5f : -0.5f));
+      int16_t qi = (int16_t)(im * q15_scale + (im >= 0 ? 0.5f : -0.5f));
+      out[n] = (float)qr * q15_inv + I * (float)qi * q15_inv;
     }
   }
 }

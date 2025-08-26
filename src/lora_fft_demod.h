@@ -12,7 +12,8 @@
  * The caller must provide a symbols buffer with at least nsym elements.
  * The implementation uses internal scratch buffers sized by LORA_MAX_SPS.
  */
-void lora_fft_demod(const lora_q15_complex *chips, uint32_t *symbols,
+void lora_fft_demod(const lora_q15_complex *restrict chips,
+                    uint32_t *restrict symbols,
                     uint8_t sf, uint32_t samp_rate, uint32_t bw,
                     float freq_offset, size_t nsym);
 

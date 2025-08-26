@@ -20,25 +20,28 @@ const uint8_t lora_whitening_seq[LORA_WHITENING_SEQ_LEN] = {
     0xE5, 0xCA, 0x94, 0x28, 0x50, 0xA1, 0x42, 0x84, 0x09, 0x13, 0x27, 0x4F, 0x9F, 0x3F, 0x7F
 };
 
-void lora_build_upchirp(float complex *chirp, uint32_t id,
+void lora_build_upchirp(float complex *restrict chirp, uint32_t id,
                         uint8_t sf, uint32_t os_factor)
 {
     double N = (double)(1u << sf);
     uint32_t sps = (uint32_t)(N * os_factor);
     int n_fold = (int)(sps - id * os_factor);
+    double inv_2Nos2 = 1.0 / (2.0 * N * os_factor * os_factor);
+    double inv_os = 1.0 / os_factor;
+    double id_over_N = (double)id / N;
+    double slope1 = (id_over_N - 0.5) * inv_os;
+    double slope2 = (id_over_N - 1.5) * inv_os;
+    const double k = 2.0 * M_PI;
     for (uint32_t n = 0; n < sps; ++n) {
-        double phase;
-        if ((int)n < n_fold)
-            phase = 2.0 * M_PI * ((double)n * (double)n / (2.0 * N * os_factor * os_factor) +
-                                  ((double)id / N - 0.5) * (double)n / os_factor);
-        else
-            phase = 2.0 * M_PI * ((double)n * (double)n / (2.0 * N * os_factor * os_factor) +
-                                  ((double)id / N - 1.5) * (double)n / os_factor);
+        double n_d = (double)n;
+        double phase = k * (n_d * n_d * inv_2Nos2 +
+                            n_d * ((int)n < n_fold ? slope1 : slope2));
         chirp[n] = cexpf(I * (float)phase);
     }
 }
 
-void lora_build_ref_chirps(float complex *upchirp, float complex *downchirp,
+void lora_build_ref_chirps(float complex *restrict upchirp,
+                           float complex *restrict downchirp,
                            uint8_t sf, uint32_t os_factor)
 {
     uint32_t sps = (1u << sf) * os_factor;
