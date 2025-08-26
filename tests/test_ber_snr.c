@@ -57,7 +57,8 @@ int main(void) {
         return EXIT_FAILURE;
     }
     size_t nchips = 0;
-    int tx_ret = lora_tx_chain(payload, payload_len, chips, LORA_MAX_CHIPS, &nchips);
+    const lora_chain_cfg cfg = {.sf = 8, .bw = 125000, .samp_rate = 125000};
+    int tx_ret = lora_tx_chain(payload, payload_len, chips, LORA_MAX_CHIPS, &nchips, &cfg);
     if (tx_ret) {
         fprintf(stderr,
                 "Iteration 0: lora_tx_chain failed (ret=%d, nchips=%zu, out_len=0)\n",
@@ -69,10 +70,7 @@ int main(void) {
 
     int fail = 0;
     uint32_t rng = 12345u;
-    const uint8_t sf = 8;
-    const uint32_t bw = 125000;
-    const uint32_t samp_rate = 125000;
-    uint32_t sps = (1u << sf) * (samp_rate / bw);
+    uint32_t sps = (1u << cfg.sf) * (cfg.samp_rate / cfg.bw);
     size_t nsym = nchips / sps;
 
     for (size_t i = 0; i < npts; ++i) {
@@ -94,7 +92,7 @@ int main(void) {
         // Run full RX chain for side effects / sanity
         uint8_t tmp_payload[LORA_MAX_PAYLOAD_LEN];
         size_t tmp_len = 0;
-        int rx_ret = lora_rx_chain(noisy, nchips, tmp_payload, sizeof(tmp_payload), &tmp_len);
+        int rx_ret = lora_rx_chain(noisy, nchips, tmp_payload, sizeof(tmp_payload), &tmp_len, &cfg);
         if (rx_ret) {
             fprintf(stderr,
                     "Iteration %zu: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",
@@ -117,7 +115,7 @@ int main(void) {
         }
         for (size_t n = 0; n < nchips; ++n)
             noisy_q[n] = lora_float_to_q15(noisy[n]);
-        lora_fft_demod(noisy_q, symbols, sf, samp_rate, bw, 0.0f, nsym);
+        lora_fft_demod(noisy_q, symbols, cfg.sf, cfg.samp_rate, cfg.bw, 0.0f, nsym);
         free(noisy_q);
 
         uint8_t whitened[LORA_MAX_NSYM];
