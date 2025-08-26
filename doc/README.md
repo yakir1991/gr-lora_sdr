@@ -8,6 +8,9 @@ rest of the project. Typical use cases include trying new modulation schemes,
 evaluating signal processing utilities, or validating end‑to‑end transmission
 concepts.
 
+All runtime state resides in per-instance contexts with no mutable global
+data, allowing multiple threads to run independently.
+
 ## Differences from gr-lora_sdr
 
 lora_lite evolved from the [gr-lora_sdr](https://github.com/daniestevez/gr-lora_sdr)
@@ -169,6 +172,33 @@ The build copies helper scripts next to the binaries:
 - `inspect_symbols.py` — plot complex sample dumps such as `tx_capture.bin`
 
 ## Benchmarking
+
+### How to benchmark & compare
+
+Liquid FFT is an optional acceleration backend. The following commands work
+even if the library is not installed.
+
+1. Build with Liquid FFT enabled:
+   ```sh
+   cmake -S . -B build -DLORA_LITE_USE_LIQUID_FFT=ON
+   ```
+2. Build without Liquid FFT:
+   ```sh
+   cmake -S . -B build -DLORA_LITE_USE_LIQUID_FFT=OFF
+   ```
+3. Run the benchmark:
+   ```sh
+   ./build/tests/bench_lora_chain > base.csv
+   ```
+4. Compare two runs:
+   ```sh
+   python3 scripts/analyze_bench.py base.csv comp.csv --threshold 0.2
+   ```
+5. Sweep multiple parameter sets:
+   ```sh
+   ./scripts/sweep_bench.sh
+   ```
+   The sweep script aggregates results into `results/host_sweep.csv`.
 
 Build the TX→RX benchmark with:
 
