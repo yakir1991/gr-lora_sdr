@@ -58,7 +58,9 @@ int main(void) {
     }
     size_t nchips = 0;
     const lora_chain_cfg cfg = {.sf = 8, .bw = 125000, .samp_rate = 125000};
-    int tx_ret = lora_tx_chain(payload, payload_len, chips, LORA_MAX_CHIPS, &nchips, &cfg);
+    static lora_tx_workspace tx_ws;
+    static lora_rx_workspace rx_ws;
+    int tx_ret = lora_tx_chain(payload, payload_len, chips, LORA_MAX_CHIPS, &nchips, &cfg, &tx_ws);
     if (tx_ret) {
         fprintf(stderr,
                 "Iteration 0: lora_tx_chain failed (ret=%d, nchips=%zu, out_len=0)\n",
@@ -108,7 +110,7 @@ int main(void) {
         // Run full RX chain for side effects / sanity
         uint8_t tmp_payload[LORA_MAX_PAYLOAD_LEN];
         size_t tmp_len = 0;
-        int rx_ret = lora_rx_chain(noisy, nchips, tmp_payload, sizeof(tmp_payload), &tmp_len, &cfg);
+        int rx_ret = lora_rx_chain(noisy, nchips, tmp_payload, sizeof(tmp_payload), &tmp_len, &cfg, &rx_ws);
         if (rx_ret) {
             fprintf(stderr,
                     "Iteration %zu: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",

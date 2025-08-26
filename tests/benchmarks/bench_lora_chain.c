@@ -39,6 +39,8 @@ int main(int argc, char **argv)
     const uint8_t payload[] = { 'A', 'B', 'C' };
     static float complex chips[LORA_MAX_CHIPS];
     static uint8_t out[LORA_MAX_PAYLOAD_LEN];
+    static lora_tx_workspace tx_ws;
+    static lora_rx_workspace rx_ws;
     const lora_chain_cfg cfg = {.sf = 8, .bw = 125000, .samp_rate = 125000};
 
     const char *csv_path = NULL;
@@ -66,7 +68,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < ITERATIONS; ++i)
     {
         size_t nchips = 0, out_len = 0;
-        int tx_ret = lora_tx_chain(payload, sizeof payload, chips, LORA_MAX_CHIPS, &nchips, &cfg);
+        int tx_ret = lora_tx_chain(payload, sizeof payload, chips, LORA_MAX_CHIPS, &nchips, &cfg, &tx_ws);
         if (tx_ret)
         {
             fprintf(stderr,
@@ -80,7 +82,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
 
-        int rx_ret = lora_rx_chain(chips, nchips, out, sizeof out, &out_len, &cfg);
+        int rx_ret = lora_rx_chain(chips, nchips, out, sizeof out, &out_len, &cfg, &rx_ws);
         if (rx_ret)
         {
             fprintf(stderr, "Iteration %d: lora_rx_chain failed (%d, nchips=%zu, out_len=%zu)\n", i, rx_ret, nchips, out_len);

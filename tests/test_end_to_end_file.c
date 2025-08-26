@@ -19,6 +19,8 @@ int main(void)
     lora_io_t in_io;
     lora_io_init_file(&in_io, fi);
     static uint8_t payload[LORA_MAX_PAYLOAD_LEN];
+    static lora_tx_workspace tx_ws;
+    static lora_rx_workspace rx_ws;
     size_t rd = 0;
     while (rd < LORA_MAX_PAYLOAD_LEN) {
         size_t n = in_io.read(in_io.ctx, payload + rd, LORA_MAX_PAYLOAD_LEN - rd);
@@ -31,7 +33,7 @@ int main(void)
     static float complex chips[LORA_MAX_CHIPS];
     size_t nchips = 0;
     const lora_chain_cfg cfg = {.sf = 8, .bw = 125000, .samp_rate = 125000};
-    int tx_ret = lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips, &cfg);
+    int tx_ret = lora_tx_chain(payload, rd, chips, LORA_MAX_CHIPS, &nchips, &cfg, &tx_ws);
     if (tx_ret) {
         fprintf(stderr,
                 "Iteration 0: lora_tx_chain failed (ret=%d, nchips=%zu, out_len=0)\n",
@@ -70,7 +72,7 @@ int main(void)
 
     static uint8_t out[LORA_MAX_PAYLOAD_LEN];
     size_t out_len = 0;
-    int rx_ret = lora_rx_chain(rx_chips, nchips, out, sizeof(out), &out_len, &cfg);
+    int rx_ret = lora_rx_chain(rx_chips, nchips, out, sizeof(out), &out_len, &cfg, &rx_ws);
     if (rx_ret) {
         fprintf(stderr,
                 "Iteration 0: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",
