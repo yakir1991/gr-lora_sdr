@@ -12,8 +12,8 @@ need_liquid_dev() {
 }
 
 run_one() {
-  local use_liq="$1"
-  local bdir="build-${use_liq,,}"
+  local use_liq="$1"             # ON / OFF
+  local bdir="build-${use_liq,,}" # build-on / build-off (lowercase)
   local csv="${OUT_DIR}/bench_${use_liq}.csv"
 
   echo ""
@@ -28,15 +28,19 @@ run_one() {
   echo "--- Running bench_lora_chain -> ${csv}"
   "./${bdir}/tests/bench_lora_chain" "${csv}"
 
-  local pps
-  pps="$(awk -F, 'NR==2 {print $3}' "${csv}" 2>/dev/null || true)"
-  echo "RESULT: USE_LIQUID=${use_liq} packets_per_sec=${pps}"
+  # Echo short line for CI logs
+  if [ -s "${csv}" ]; then
+    local pps
+    pps="$(awk -F, 'NR==2 {print $3}' "${csv}" 2>/dev/null || true)"
+    echo "RESULT: USE_LIQUID=${use_liq} packets_per_sec=${pps}"
+  fi
 }
 
 mkdir -p "${OUT_DIR}"
 run_one "OFF"
+need_liquid_dev || true
 run_one "ON"
 
 echo ""
-echo "[done] Baselines saved:"
+echo "[done] Baselines saved under ${OUT_DIR}:"
 ls -1 "${OUT_DIR}"/bench_*.csv
