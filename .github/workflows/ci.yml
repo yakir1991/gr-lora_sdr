@@ -40,10 +40,11 @@ jobs:
         working-directory: build
         run: ctest --output-on-failure
 
-      - name: Run benchmark
-        run: |
-          mkdir -p results profile
-          ./build/tests/bench_lora_chain > bench_results.csv
+      - name: Build tests
+        run: cmake --build build --target bench_lora_chain
+
+      - name: Run bench_lora_chain
+        run: ./build/tests/bench_lora_chain > bench_results.csv
 
       - name: Upload artifacts
         if: always()

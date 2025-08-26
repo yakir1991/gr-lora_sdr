@@ -194,21 +194,9 @@ set_tests_properties(compare_fixed_float_nolog PROPERTIES
   DEPENDS "run_fixed_float_float_nolog;run_fixed_float_fixed_nolog"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-if(LORA_LITE_BENCHMARK)
-  add_executable(bench_lora_chain benchmarks/bench_lora_chain.c)
-  target_link_libraries(bench_lora_chain PRIVATE lora_tx_chain lora_rx_chain)
-  target_include_directories(bench_lora_chain PRIVATE ../src)
-  target_compile_definitions(bench_lora_chain PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
-  target_compile_options(bench_lora_chain PRIVATE -O3 -DNDEBUG)
-
-  add_executable(bench_lora_interleaver benchmarks/bench_lora_interleaver.c)
-  target_link_libraries(bench_lora_interleaver PRIVATE lora_interleaver)
-  target_include_directories(bench_lora_interleaver PRIVATE ../src)
-  target_compile_definitions(bench_lora_interleaver PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
-  target_compile_options(bench_lora_interleaver PRIVATE -O3 -DNDEBUG)
-
-  if(NOT CMAKE_CROSSCOMPILING)
-    add_test(NAME bench_lora_chain COMMAND bench_lora_chain)
-    add_test(NAME bench_lora_interleaver COMMAND bench_lora_interleaver)
-  endif()
-endif()
+add_executable(bench_lora_chain benchmarks/bench_lora_chain.c)
+target_link_libraries(bench_lora_chain PRIVATE lora_tx_chain lora_rx_chain)
+target_include_directories(bench_lora_chain PRIVATE ../src)
+target_compile_definitions(bench_lora_chain PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+target_compile_options(bench_lora_chain PRIVATE -O3 -DNDEBUG)
+add_test(NAME bench_lora_chain COMMAND bench_lora_chain)
