@@ -11,6 +11,7 @@
 #endif
 #include "lora_chain.h"
 #include "lora_fft_demod.h"
+#include "lora_fixed.h"
 #include "lora_whitening.h"
 #include "lora_add_crc.h"
 #include "lora_config.h"
@@ -106,7 +107,18 @@ int main(void) {
 
         // Demodulate to compute BER
         uint32_t symbols[LORA_MAX_NSYM];
-        lora_fft_demod(noisy, symbols, sf, samp_rate, bw, 0.0f, nsym);
+        lora_q15_complex *noisy_q = malloc(sizeof(lora_q15_complex) * nchips);
+        if (!noisy_q) {
+            fprintf(stderr, "malloc failed\n");
+            free(noisy);
+            free(chips);
+            fclose(csv);
+            return EXIT_FAILURE;
+        }
+        for (size_t n = 0; n < nchips; ++n)
+            noisy_q[n] = lora_float_to_q15(noisy[n]);
+        lora_fft_demod(noisy_q, symbols, sf, samp_rate, bw, 0.0f, nsym);
+        free(noisy_q);
 
         uint8_t whitened[LORA_MAX_NSYM];
         for (size_t s = 0; s < nsym; ++s) whitened[s] = (uint8_t)(symbols[s] & 0xFF);

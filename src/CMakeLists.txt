@@ -1,8 +1,5 @@
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-if(LORA_LITE_USE_LIQUID_FFT OR LORA_LITE_FIXED_POINT)
-  find_package(Liquid REQUIRED)
-endif()
 
 add_library(signal_utils signal_utils.c)
 target_include_directories(signal_utils PUBLIC
@@ -15,9 +12,6 @@ target_include_directories(lora_utils PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include/lora_lite>)
 target_link_libraries(lora_utils PUBLIC m)
-if(LORA_LITE_FIXED_POINT)
-  target_link_libraries(lora_utils PUBLIC Liquid::liquid)
-endif()
 
 
 add_library(lora_io lora_io.c)
@@ -62,25 +56,22 @@ target_include_directories(lora_mod PUBLIC
   $<INSTALL_INTERFACE:include/lora_lite>)
 target_link_libraries(lora_mod PUBLIC lora_utils m)
 
-# Path to legacy sources used by the FFT demodulator
-set(LEGACY_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../legacy_gr_lora_sdr/lib)
-
+add_library(lora_fft lora_fft.c q15_to_cf.c)
+target_include_directories(lora_fft PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:include/lora_lite>)
+target_link_libraries(lora_fft PUBLIC m)
 if(LORA_LITE_USE_LIQUID_FFT)
-  add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c)
-  target_include_directories(lora_fft_demod PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include/lora_lite>)
-  target_link_libraries(lora_fft_demod PUBLIC lora_utils m)
-  target_link_libraries(lora_fft_demod PRIVATE Liquid::liquid)
-  target_compile_definitions(lora_fft_demod PUBLIC LORA_LITE_LIQUID_FFT LORA_LITE_USE_LIQUID_FFT)
-else()
-  add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c ${LEGACY_LIB_DIR}/kiss_fft.c)
-  target_include_directories(lora_fft_demod PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<BUILD_INTERFACE:${LEGACY_LIB_DIR}>
-    $<INSTALL_INTERFACE:include/lora_lite>)
-  target_link_libraries(lora_fft_demod PUBLIC lora_utils m)
+  target_link_libraries(lora_fft PUBLIC Liquid::liquid)
 endif()
+
+add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c)
+target_include_directories(lora_fft_demod PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/lora_lite>)
+target_link_libraries(lora_fft_demod PUBLIC lora_utils lora_fft m)
 
 add_library(lora_header lora_header.c)
 target_include_directories(lora_header PUBLIC
@@ -121,6 +112,7 @@ set(LORA_LITE_LIBS
   lora_interleaver
   lora_graymap
   lora_mod
+  lora_fft
   lora_fft_demod
   lora_header
   lora_frame_sync
@@ -145,6 +137,10 @@ install(TARGETS ${LORA_LITE_LIBS}
         RUNTIME DESTINATION bin)
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
+        DESTINATION include/lora_lite
+        FILES_MATCHING PATTERN "*.h")
+
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/
         DESTINATION include/lora_lite
         FILES_MATCHING PATTERN "*.h")
 

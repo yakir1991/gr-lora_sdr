@@ -5,6 +5,7 @@
 #include "../src/lora_mod.h"
 #include "../src/lora_fft_demod.h"
 #include "../src/lora_config.h"
+#include "../src/lora_fixed.h"
 
 int main(int argc, char **argv) {
     const char *out_path = argc > 1 ? argv[1] : "out.bin";
@@ -14,8 +15,11 @@ int main(int argc, char **argv) {
     const size_t nsym = 4;
     const uint32_t symbols[4] = {0, 1, 2, 3};
 
-    float complex chips[nsym * (1u << sf)];
-    lora_modulate(symbols, chips, sf, samp_rate, bw, nsym);
+    float complex chips_f[nsym * (1u << sf)];
+    lora_modulate(symbols, chips_f, sf, samp_rate, bw, nsym);
+    lora_q15_complex chips[nsym * (1u << sf)];
+    for (size_t i = 0; i < nsym * (1u << sf); ++i)
+        chips[i] = lora_float_to_q15(chips_f[i]);
 
     uint32_t rec[4] = {0};
     lora_fft_demod(chips, rec, sf, samp_rate, bw, 0.0f, nsym);

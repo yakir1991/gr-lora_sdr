@@ -11,6 +11,7 @@
 
 #include "lora_fft_demod.h"
 #include "lora_fft_demod_ctx.h"
+#include "lora_fixed.h"
 #include "lora_log.h"
 #include "lora_mod.h"
 
@@ -25,24 +26,7 @@ static size_t legacy_workspace_bytes(uint8_t sf, uint32_t fs, uint32_t bw)
     uint32_t n_bins = 1u << sf;
     uint32_t os_factor = fs / bw;
     uint32_t sps = n_bins * os_factor;
-
-    size_t total = 0;
-#ifndef LORA_LITE_LIQUID_FFT
-    size_t cfg_sz = 0;
-    kiss_fft_cfg tmp = kiss_fft_alloc(sps, 0, NULL, &cfg_sz);
-    free(tmp);
-    total = align_up(cfg_sz, alignof(lora_fft_cpx));
-#endif
-#ifndef LORA_LITE_FIXED_POINT
-    total += sps * sizeof(float complex);
-#else
-    total += sps * sizeof(lora_q15_complex);
-#endif
-    total = align_up(total, alignof(lora_fft_cpx));
-    total += sps * sizeof(lora_fft_cpx);
-    total = align_up(total, alignof(lora_fft_cpx));
-    total += sps * sizeof(lora_fft_cpx);
-    return total;
+    return sps * sizeof(float complex) * 3;
 }
 
 int main(void)
@@ -54,8 +38,11 @@ int main(void)
     const uint32_t symbols[4] = {0, 1, 2, 3};
 
     uint32_t sps = (1u << sf) * (samp_rate / bw);
-    float complex chips[nsym * sps];
-    lora_modulate(symbols, chips, sf, samp_rate, bw, nsym);
+    float complex chips_f[nsym * sps];
+    lora_modulate(symbols, chips_f, sf, samp_rate, bw, nsym);
+    lora_q15_complex chips[nsym * sps];
+    for (uint32_t i = 0; i < nsym * sps; ++i)
+        chips[i] = lora_float_to_q15(chips_f[i]);
 
     uint32_t rec[4] = {0};
     clock_t t0 = clock();

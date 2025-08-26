@@ -1,5 +1,6 @@
 #include "lora_chain.h"
 #include "lora_fft_demod.h"
+#include "lora_fixed.h"
 #include "lora_whitening.h"
 #include "lora_add_crc.h"
 #include "lora_config.h"
@@ -21,8 +22,11 @@ int lora_rx_chain(const float complex *chips, size_t nchips,
     if (nsym > LORA_MAX_NSYM)
         return -1;
 
+    lora_q15_complex qchips[LORA_MAX_CHIPS];
+    for (size_t i = 0; i < nchips && i < LORA_MAX_CHIPS; ++i)
+        qchips[i] = lora_float_to_q15(chips[i]);
     uint32_t symbols[LORA_MAX_NSYM];
-    lora_fft_demod(chips, symbols, sf, samp_rate, bw, 0.0f, nsym);
+    lora_fft_demod(qchips, symbols, sf, samp_rate, bw, 0.0f, nsym);
 
     uint8_t whitened[LORA_MAX_NSYM];
     for (size_t i = 0; i < nsym; ++i)
