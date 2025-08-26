@@ -123,6 +123,9 @@ int main(void) {
 
         // Demodulate to compute BER
         uint32_t symbols[LORA_MAX_NSYM];
+        ctx.cfo = 0.0f;
+        ctx.cfo_phase = 0.0;
+#ifdef LORA_LITE_FIXED_POINT
         lora_q15_complex *noisy_q = malloc(sizeof(lora_q15_complex) * nchips);
         if (!noisy_q) {
             fprintf(stderr, "malloc failed\n");
@@ -133,10 +136,11 @@ int main(void) {
         }
         for (size_t n = 0; n < nchips; ++n)
             noisy_q[n] = lora_float_to_q15(noisy[n]);
-        ctx.cfo = 0.0f;
-        ctx.cfo_phase = 0.0;
         lora_fft_demod(&ctx, noisy_q, nsym, symbols);
         free(noisy_q);
+#else
+        lora_fft_demod(&ctx, noisy, nsym, symbols);
+#endif
 
         uint8_t whitened[LORA_MAX_NSYM];
         for (size_t s = 0; s < nsym; ++s) whitened[s] = (uint8_t)(symbols[s] & 0xFF);
