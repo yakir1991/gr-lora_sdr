@@ -1,0 +1,3 @@
+# Add patterns to suppress known third-party leaks if needed.
+# Example:
+# leak:^liquid_.*

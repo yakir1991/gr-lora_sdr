@@ -153,3 +153,13 @@ Run the guard on a results folder:
 The workflow `.github/workflows/embedded-bench.yml` runs both host and embedded profiles:
 - Host: build, tests, bench, compare (no guard).
 - Embedded: build with `-C cmake/embedded_profile.cmake`, bench, compare, and **guard** with thresholds from `bench/targets.embedded.json`.
+
+#### ASAN profile (CI-only by default)
+A third CI profile `embedded-asan` builds with AddressSanitizer (no LTO, `RelWithDebInfo`), runs `ctest -V`, and performs a short smoke-run of `bench_lora_chain` to exercise hot paths. Results are uploaded under `bench-results-embedded-asan`.
+Local run:
+```bash
+cmake -S . -B build-asan -C cmake/embedded_profile.cmake -C cmake/asan_profile.cmake -DBUILD_TESTING=ON
+cmake --build build-asan -j"$(nproc)"
+ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 LSAN_OPTIONS="suppressions=$(pwd)/asan/lsan.supp" ctest --test-dir build-asan -V
+ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 ./build-asan/tests/bench_lora_chain /dev/null || true
+```
