@@ -10,6 +10,9 @@ int lora_rx_chain(const float complex *chips, size_t nchips,
                   uint8_t *payload, size_t payload_buf_len,
                   size_t *payload_len_out)
 {
+    if (!chips || !payload || !payload_len_out || payload_buf_len == 0)
+        return -1;
+
     const uint8_t sf = 8;
     const uint32_t bw = 125000;
     const uint32_t samp_rate = 125000;
