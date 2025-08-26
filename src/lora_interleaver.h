@@ -15,7 +15,7 @@
  * cw_len    : number of bits per codeword (4+cr or 8 for header)
  * add_parity: when true, append parity bit at column sf_app
  */
-void lora_interleave(const uint8_t *in, uint32_t *out,
+void lora_interleave(const uint8_t *restrict in, uint32_t *restrict out,
                      uint8_t sf, uint8_t sf_app, uint8_t cw_len,
                      bool add_parity);
 

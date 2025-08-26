@@ -16,7 +16,7 @@ static uint32_t bits_to_int(const uint8_t *bits, uint8_t n_bits)
     return val;
 }
 
-void lora_interleave(const uint8_t *in, uint32_t *out,
+void lora_interleave(const uint8_t *restrict in, uint32_t *restrict out,
                      uint8_t sf, uint8_t sf_app, uint8_t cw_len,
                      bool add_parity)
 {
@@ -26,21 +26,32 @@ void lora_interleave(const uint8_t *in, uint32_t *out,
     }
 
     uint8_t inter_bin[cw_len][sf];
-    for (uint8_t i = 0; i < cw_len; ++i) {
-        for (uint8_t j = 0; j < sf_app; ++j) {
-            uint8_t idx = (i + sf_app - j - 1) % sf_app;
-            inter_bin[i][j] = cw_bin[idx][i];
-        }
-        for (uint8_t j = sf_app; j < sf; ++j) {
-            inter_bin[i][j] = 0;
-        }
-        if (add_parity && sf_app < sf) {
+    if (add_parity && sf_app < sf) {
+        for (uint8_t i = 0; i < cw_len; ++i) {
+            for (uint8_t j = 0; j < sf_app; ++j) {
+                uint8_t idx = (i + sf_app - j - 1) % sf_app;
+                inter_bin[i][j] = cw_bin[idx][i];
+            }
+            for (uint8_t j = sf_app; j < sf; ++j) {
+                inter_bin[i][j] = 0;
+            }
             uint8_t parity = 0;
             for (uint8_t j = 0; j < sf_app; ++j)
                 parity ^= inter_bin[i][j];
             inter_bin[i][sf_app] = parity;
+            out[i] = bits_to_int(inter_bin[i], sf);
         }
-        out[i] = bits_to_int(inter_bin[i], sf);
+    } else {
+        for (uint8_t i = 0; i < cw_len; ++i) {
+            for (uint8_t j = 0; j < sf_app; ++j) {
+                uint8_t idx = (i + sf_app - j - 1) % sf_app;
+                inter_bin[i][j] = cw_bin[idx][i];
+            }
+            for (uint8_t j = sf_app; j < sf; ++j) {
+                inter_bin[i][j] = 0;
+            }
+            out[i] = bits_to_int(inter_bin[i], sf);
+        }
     }
 }
 
