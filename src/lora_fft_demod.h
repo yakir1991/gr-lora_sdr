@@ -30,11 +30,13 @@ typedef struct {
 } lora_fft_demod_ctx_t;
 
 /* Return the number of bytes required for the workspace used by the
- * demodulator with the given parameters. */
+ * demodulator with the given parameters.  The returned size is always a
+ * multiple of 32 bytes so it can be passed directly to aligned_alloc. */
 size_t lora_fft_workspace_bytes(uint8_t sf, uint32_t fs, uint32_t bw);
 
 /* Initialise the context using the caller supplied workspace.  The workspace
- * must be at least lora_fft_workspace_bytes(sf,fs,bw) bytes. */
+ * must be 32-byte aligned and at least lora_fft_workspace_bytes(sf,fs,bw)
+ * bytes. */
 int lora_fft_demod_init(lora_fft_demod_ctx_t *ctx, uint8_t sf, uint32_t fs,
                         uint32_t bw, void *workspace,
                         size_t workspace_bytes);

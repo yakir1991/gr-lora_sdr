@@ -73,7 +73,7 @@ int main(void) {
     uint32_t sps = (1u << cfg.sf) * (cfg.samp_rate / cfg.bw);
     size_t nsym = nchips / sps;
     size_t ws_bytes = lora_fft_workspace_bytes(cfg.sf, cfg.samp_rate, cfg.bw);
-    void *ws = malloc(ws_bytes);
+    void *ws = aligned_alloc(32, ws_bytes);
     if (!ws) {
         fprintf(stderr, "malloc failed\n");
         free(chips);

@@ -49,7 +49,7 @@ int lora_rx_chain(const float complex *restrict chips, size_t nchips,
     size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
     if (ws_bytes == 0)
         return -1;
-    void *ws = malloc(ws_bytes);
+    void *ws = aligned_alloc(32, ws_bytes);
     if (!ws)
         return -1;
     lora_fft_demod_ctx_t ctx;
