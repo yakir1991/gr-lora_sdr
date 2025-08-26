@@ -94,6 +94,12 @@ Other CMake switches tailor the build for embedded use:
 - `LORA_LITE_STATIC` – produce static library artifacts.
 - `USE_SYSTEM_LIQUID_DSP` – link against a prebuilt `liquid-dsp` instead of
   fetching it.
+- `ENABLE_SANITIZERS` – add AddressSanitizer and UndefinedBehaviorSanitizer
+  when building non-`Release` configurations. For example:
+
+  ```sh
+  cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SANITIZERS=ON
+  ```
 
 ## Example Usage
 ### Hello World
