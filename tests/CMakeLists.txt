@@ -79,6 +79,11 @@ lora_add_test(test_lora_graymap
   LIBS lora_graymap
   PASS_REGEX "Gray map test passed")
 
+lora_add_test(test_os_factor_check
+  SOURCES test_os_factor_check.c
+  LIBS lora_mod lora_fft_demod
+  PASS_REGEX "OS factor check test passed")
+
 lora_add_test(test_lora_mod_fft
   SOURCES test_lora_mod_fft.c
   LIBS lora_mod lora_fft_demod $<$<NOT:$<BOOL:${LORA_LITE_FIXED_POINT}>>:m>
