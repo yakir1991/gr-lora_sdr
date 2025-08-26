@@ -188,7 +188,7 @@ even if the library is not installed.
    ```
 3. Run the benchmark:
    ```sh
-   ./build/tests/bench_lora_chain > base.csv
+   ./build/tests/bench_lora_chain base.csv
    ```
 4. Compare two runs:
    ```sh
@@ -208,9 +208,10 @@ cmake --build build
 ctest --test-dir build -R bench_lora_chain
 ```
 
-The run produces `bench_results.csv` in the build tree containing cycle
-counts, peak heap usage, and packet throughput. Summarize and compare files
-with the helper script:
+The run produces `bench_results.csv` in the build tree by default containing
+cycle counts, peak heap usage, and packet throughput. Pass a CSV path as the
+first argument or set the `BENCH_CSV` environment variable to override the
+output file. Summarize and compare files with the helper script:
 
 ```sh
 python analyze_bench.py build/tests/bench_results.csv

@@ -5,6 +5,7 @@
 #include <complex.h>
 #include <time.h>
 #include <malloc.h>
+#include <errno.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -33,20 +34,29 @@ static uint64_t now_ns(void)
 #endif
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
     const uint8_t payload[] = { 'A', 'B', 'C' };
     static float complex chips[LORA_MAX_CHIPS];
     static uint8_t out[LORA_MAX_PAYLOAD_LEN];
 
-    FILE *csv = fopen("bench_results.csv", "w");
+    const char *csv_path = NULL;
+    if (argc > 1)
+        csv_path = argv[1];
+    else
+        csv_path = getenv("BENCH_CSV");
+    if (!csv_path || !csv_path[0])
+        csv_path = "bench_results.csv";
+
+    FILE *csv = fopen(csv_path, "w");
     if (!csv)
     {
-        perror("bench_results.csv");
         char cwd[256];
-        if (getcwd(cwd, sizeof cwd))
-            fprintf(stderr, "cwd: %s\n", cwd);
-        return EXIT_FAILURE;
+        if (!getcwd(cwd, sizeof cwd))
+            strcpy(cwd, "?");
+        fprintf(stderr, "[bench] failed to open CSV '%s' (cwd=%s): %s\n",
+                csv_path, cwd, strerror(errno));
+        return 255;
     }
     fprintf(csv, "cycles,bytes_allocated,packets_per_sec\n");
 
