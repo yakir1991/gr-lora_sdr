@@ -1,4 +1,30 @@
 # Testing, Benchmarking, and CI
+
+## Run all tests
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+cmake --build build -j"$(nproc)"
+ctest --test-dir build -V
+```
+
+### End-to-End file test
+```bash
+ctest --test-dir build -R test_end_to_end_file --output-on-failure
+```
+
+## Basic benchmark
+Enable the benchmark targets and run the TX→RX chain.
+
+```bash
+cmake -S . -B build -DLORA_LITE_BENCHMARK=ON
+cmake --build build
+ctest --test-dir build -R bench_lora_chain
+./build/tests/bench_lora_chain results/bench_results.csv
+python scripts/analyze_bench.py results/bench_results.csv
+```
+
+To benchmark on a microcontroller, cross-compile as described in [SETUP.md](SETUP.md) and run the generated `bench_lora_chain` on hardware. Collect the CSV output and analyze it with `analyze_bench.py` to compare against host results.
+
 ## Benchmark sweep
 
 Run `./scripts/sweep_bench.sh` to build and execute the benchmark across multiple
@@ -69,6 +95,15 @@ FFT=ON                        19234.872
 Ratio (ON/OFF)                  103.88%
 ```
 
+## Profiling
+Collect performance counters and heap usage on the host:
+
+```bash
+./scripts/profile_host.sh
+```
+
+The script requires `perf` and `valgrind` and writes results to `results/profile_perf.txt` and `results/profile_massif.txt`.
+
 ## Embedded Optimization & FFT Matrix
 
 This project includes:
@@ -78,37 +113,16 @@ This project includes:
 - Optional embedded compile profile (-Os, LTO, GC-sections, fixed-point).
 - CI workflow that runs everything and uploads artifacts.
 
-### Run all tests
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
-cmake --build build -j"$(nproc)"
-ctest --test-dir build -V
-```
-
 ### Embedded profile (optional)
+Build the project using the embedded profile preset described in [SETUP.md](SETUP.md). After building, run:
+
 ```bash
-cmake -S . -B build-emb -C cmake/embedded_profile.cmake -DBUILD_TESTING=ON
-cmake --build build-emb -j"$(nproc)"
+./build-emb/tests/bench_lora_chain bench_emb.csv
 ```
 
-To favor throughput over code size on embedded targets, enable the
-`LORA_LITE_EMB_THROUGHPUT` flag, which adds `-O3 -DNDEBUG -fno-math-errno -fno-trapping-math`:
+To favor throughput over code size, rebuild with `-DLORA_LITE_EMB_THROUGHPUT=ON`. For maximum packets-per-second, combine fixed-point and throughput flags and run:
 
 ```bash
-cmake -S . -B build-emb -C cmake/embedded_profile.cmake \
-  -DLORA_LITE_EMB_THROUGHPUT=ON -DBUILD_TESTING=ON
-cmake --build build-emb -j"$(nproc)"
-```
-
-### Fixed-point throughput preset
-
-For maximum packets-per-second on embedded targets, combine fixed-point and
-throughput flags:
-
-```bash
-cmake -S . -B build-emb-o3 -C cmake/embedded_profile.cmake \
-      -DLORA_LITE_FIXED_POINT=ON -DLORA_LITE_EMB_THROUGHPUT=ON -DBUILD_TESTING=ON
-cmake --build build-emb-o3 -j"$(nproc)"
 ./build-emb-o3/tests/bench_lora_chain bench_fixed_o3.csv
 ```
 
@@ -158,10 +172,8 @@ A workflow at `.github/workflows/embedded-bench.yml` runs:
   `-DLORA_LITE_EMB_THROUGHPUT=ON` to favor throughput over code size.
 
 ### Embedded profile: Liquid FFT default & baseline
-When building with the embedded profile:
+After building with the embedded profile (see [SETUP.md](SETUP.md)):
 ```bash
-cmake -S . -B build-emb -C cmake/embedded_profile.cmake -DBUILD_TESTING=ON
-cmake --build build-emb -j"$(nproc)"
 ./build-emb/tests/bench_lora_chain bench_emb.csv
 ```
 **Observed on embedded profile:** Liquid FFT is ~10–11% faster than KISS

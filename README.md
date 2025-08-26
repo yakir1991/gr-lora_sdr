@@ -9,35 +9,8 @@ lora_lite is a sandbox for experimenting with LoRa® software-defined radio comp
 
 The original GNU Radio-based implementation is preserved in [legacy_gr_lora_sdr/](legacy_gr_lora_sdr/) and remains unmodified for reference.
 
-See [doc/README.md](doc/README.md) for full project documentation and [TESTING.md](TESTING.md) for testing and benchmarking instructions.
+For installation and cross-compilation instructions see [SETUP.md](SETUP.md). Testing and benchmarking steps live in [TESTING.md](TESTING.md). Additional documentation can be found in [doc/README.md](doc/README.md).
 
 ## Repository Layout
 - `lora_lite/` – core modular library and tests
 - `legacy_gr_lora_sdr/` – archived GNU Radio implementation kept for reference
-
-## Installation and Build
-### Prerequisites
-- CMake ≥ 3.12
-- A C compiler such as GCC
-- GNU Make
-- Python 3 (for utility scripts)
-
-### Steps
-From the `lora_lite/` directory:
-
-1. Configure the project:
-   ```sh
-   cmake -S . -B build
-   ```
-2. Compile the sources:
-   ```sh
-   cmake --build build
-   ```
-3. Run the test suite:
-   ```sh
-   ctest --test-dir build --output-on-failure
-   ```
-4. (Optional) install the modules into your system:
-   ```sh
-   sudo cmake --install build
-   ```
