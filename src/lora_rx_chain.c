@@ -7,9 +7,9 @@
 #include "lora_io.h"
 #include <string.h>
 
-int lora_rx_chain(const float complex *chips, size_t nchips,
-                  uint8_t *payload, size_t payload_buf_len,
-                  size_t *payload_len_out)
+int lora_rx_chain(const float complex *restrict chips, size_t nchips,
+                  uint8_t *restrict payload, size_t payload_buf_len,
+                  size_t *restrict payload_len_out)
 {
     if (!chips || !payload || !payload_len_out || payload_buf_len == 0)
         return -1;
@@ -23,8 +23,21 @@ int lora_rx_chain(const float complex *chips, size_t nchips,
         return -1;
 
     lora_q15_complex qchips[LORA_MAX_CHIPS];
-    for (size_t i = 0; i < nchips && i < LORA_MAX_CHIPS; ++i)
-        qchips[i] = lora_float_to_q15(chips[i]);
+    const float q15_scale = 32767.0f;
+    for (size_t i = 0; i < nchips && i < LORA_MAX_CHIPS; ++i) {
+        float re = crealf(chips[i]);
+        if (re > 0.999969f)
+            re = 0.999969f;
+        if (re < -1.0f)
+            re = -1.0f;
+        float im = cimagf(chips[i]);
+        if (im > 0.999969f)
+            im = 0.999969f;
+        if (im < -1.0f)
+            im = -1.0f;
+        qchips[i].r = (int16_t)(re * q15_scale + (re >= 0 ? 0.5f : -0.5f));
+        qchips[i].i = (int16_t)(im * q15_scale + (im >= 0 ? 0.5f : -0.5f));
+    }
     uint32_t symbols[LORA_MAX_NSYM];
     lora_fft_demod(qchips, symbols, sf, samp_rate, bw, 0.0f, nsym);
 

@@ -5,8 +5,9 @@
 /* Thin wrapper that preserves the historic API while internally using the
  * context based FFT demodulator.  A temporary workspace is allocated for each
  * call. */
-void lora_fft_demod(const lora_q15_complex *chips, uint32_t *symbols,
-                    uint8_t sf, uint32_t samp_rate, uint32_t bw,
+void lora_fft_demod(const lora_q15_complex *restrict chips,
+                    uint32_t *restrict symbols, uint8_t sf,
+                    uint32_t samp_rate, uint32_t bw,
                     float freq_offset, size_t nsym) {
   lora_fft_demod_ctx_t ctx;
   size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);

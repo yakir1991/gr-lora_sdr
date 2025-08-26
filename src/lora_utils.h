@@ -11,9 +11,10 @@
 #define LORA_WHITENING_SEQ_LEN 255
 extern const uint8_t lora_whitening_seq[LORA_WHITENING_SEQ_LEN];
 
-void lora_build_upchirp(float complex *chirp, uint32_t id,
+void lora_build_upchirp(float complex *restrict chirp, uint32_t id,
                         uint8_t sf, uint32_t os_factor);
-void lora_build_ref_chirps(float complex *upchirp, float complex *downchirp,
+void lora_build_ref_chirps(float complex *restrict upchirp,
+                           float complex *restrict downchirp,
                            uint8_t sf, uint32_t os_factor);
 
 #endif /* LORA_UTILS_H */
