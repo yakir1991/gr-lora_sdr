@@ -1,0 +1,118 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <complex.h>
+#include <string.h>
+#include "lora_chain.h"
+#include "lora_fft_demod.h"
+#include "lora_whitening.h"
+#include "lora_add_crc.h"
+#include "lora_config.h"
+
+static uint32_t lcg_rand(uint32_t *state) {
+    *state = (*state * 1664525u) + 1013904223u;
+    return *state;
+}
+
+static float randf(uint32_t *state) {
+    return (lcg_rand(state) >> 8) / (float)(1u << 24);
+}
+
+static float randn(uint32_t *state) {
+    float u1 = randf(state);
+    float u2 = randf(state);
+    return sqrtf(-2.0f * logf(u1)) * cosf(2.0f * (float)M_PI * u2);
+}
+
+int main(void) {
+    const float snr_db[] = {0, 5, 10, 15, 20};
+    const float ber_thresh[] = {1.0f, 0.5f, 0.1f, 0.01f, 0.0f};
+    const size_t npts = sizeof(snr_db) / sizeof(snr_db[0]);
+
+    FILE *csv = fopen("results/ber_snr.csv", "w");
+    if (!csv) {
+        perror("fopen");
+        return 1;
+    }
+    fprintf(csv, "snr_db,ber\n");
+
+    const uint8_t payload_len = 16;
+    uint8_t payload[payload_len];
+    for (uint8_t i = 0; i < payload_len; ++i) payload[i] = i;
+
+    float complex *chips = malloc(sizeof(float complex) * LORA_MAX_CHIPS);
+    if (!chips) {
+        fprintf(stderr, "malloc failed\n");
+        fclose(csv);
+        return 1;
+    }
+    size_t nchips = 0;
+    if (lora_tx_chain(payload, payload_len, chips, LORA_MAX_CHIPS, &nchips) != 0) {
+        fprintf(stderr, "lora_tx_chain failed\n");
+        fclose(csv);
+        free(chips);
+        return 1;
+    }
+
+    int fail = 0;
+    uint32_t rng = 12345u;
+    const uint8_t sf = 8;
+    const uint32_t bw = 125000;
+    const uint32_t samp_rate = 125000;
+    uint32_t sps = (1u << sf) * (samp_rate / bw);
+    size_t nsym = nchips / sps;
+
+    for (size_t i = 0; i < npts; ++i) {
+        float snr_linear = powf(10.0f, snr_db[i] / 10.0f);
+        float noise_std = 1.0f / sqrtf(2.0f * snr_linear);
+        float complex *noisy = malloc(sizeof(float complex) * nchips);
+        if (!noisy) {
+            fprintf(stderr, "malloc failed\n");
+            fclose(csv);
+            free(chips);
+            return 1;
+        }
+        for (size_t n = 0; n < nchips; ++n) {
+            float nr = noise_std * randn(&rng);
+            float ni = noise_std * randn(&rng);
+            noisy[n] = chips[n] + nr + I * ni;
+        }
+
+        // Run full RX chain for side effects / sanity
+        uint8_t tmp_payload[LORA_MAX_PAYLOAD_LEN];
+        size_t tmp_len = 0;
+        (void)lora_rx_chain(noisy, nchips, tmp_payload, sizeof(tmp_payload), &tmp_len);
+
+        // Demodulate to compute BER
+        uint32_t symbols[LORA_MAX_NSYM];
+        lora_fft_demod(noisy, symbols, sf, samp_rate, bw, 0.0f, nsym);
+
+        uint8_t whitened[LORA_MAX_NSYM];
+        for (size_t s = 0; s < nsym; ++s) whitened[s] = (uint8_t)(symbols[s] & 0xFF);
+
+        uint8_t payload_crc[LORA_MAX_NSYM];
+        lora_dewhiten(whitened, payload_crc, nsym);
+
+        size_t bit_errors = 0;
+        for (size_t b = 0; b < payload_len; ++b) {
+            uint8_t diff = payload[b] ^ payload_crc[b];
+            bit_errors += __builtin_popcount((unsigned)diff);
+        }
+        float ber = (float)bit_errors / (payload_len * 8.0f);
+        fprintf(csv, "%g,%g\n", snr_db[i], ber);
+        printf("SNR %g dB -> BER %g\n", snr_db[i], ber);
+        if (ber > ber_thresh[i]) fail = 1;
+        free(noisy);
+    }
+
+    free(chips);
+    fclose(csv);
+
+    if (fail) {
+        fprintf(stderr, "BER exceeded threshold\n");
+        return 1;
+    }
+    printf("BER vs SNR test passed\n");
+    return 0;
+}
+
