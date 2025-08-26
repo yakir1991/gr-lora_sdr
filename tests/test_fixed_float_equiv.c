@@ -1,28 +1,21 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <complex.h>
+#include <stdlib.h>
 
 #include "lora_log.h"
 #include "lora_mod.h"
 #include "lora_utils.h"
-#include "lora_fft_demod_ctx.h"
+#include "lora_fft_demod.h"
 #include "lora_config.h"
 #include "lora_fixed.h"
 
 #ifdef LORA_LITE_FIXED_POINT
 typedef lora_q15_complex chip_t;
 #define TO_CHIP(x) lora_float_to_q15((x))
-void lora_fft_demod(const lora_q15_complex *restrict chips,
-                    uint32_t *restrict symbols, uint8_t sf,
-                    uint32_t samp_rate, uint32_t bw,
-                    float freq_offset, size_t nsym);
 #else
 typedef float complex chip_t;
 #define TO_CHIP(x) (x)
-void lora_fft_demod(const float complex *restrict chips,
-                    uint32_t *restrict symbols, uint8_t sf,
-                    uint32_t samp_rate, uint32_t bw,
-                    float freq_offset, size_t nsym);
 #endif
 
 int main(int argc, char **argv) {
@@ -40,7 +33,20 @@ int main(int argc, char **argv) {
         chips[i] = TO_CHIP(chips_f[i]);
 
     uint32_t rec[4] = {0};
-    lora_fft_demod((const chip_t *)chips, rec, sf, samp_rate, bw, 0.0f, nsym);
+    size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
+    void *ws = malloc(ws_bytes);
+    if (!ws)
+        return 1;
+    lora_fft_demod_ctx_t ctx;
+    if (lora_fft_demod_init(&ctx, sf, samp_rate, bw, ws, ws_bytes) != 0) {
+        free(ws);
+        return 1;
+    }
+    ctx.cfo = 0.0f;
+    ctx.cfo_phase = 0.0;
+    lora_fft_demod(&ctx, (const chip_t *)chips, nsym, rec);
+    lora_fft_demod_free(&ctx);
+    free(ws);
     for (size_t i = 0; i < nsym; ++i) {
         if (rec[i] != symbols[i]) {
             LORA_LOG_ERR("Mismatch at %zu: %u != %u", i, rec[i], symbols[i]);

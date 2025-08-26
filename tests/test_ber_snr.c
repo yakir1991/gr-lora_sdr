@@ -72,6 +72,22 @@ int main(void) {
     uint32_t rng = 12345u;
     uint32_t sps = (1u << cfg.sf) * (cfg.samp_rate / cfg.bw);
     size_t nsym = nchips / sps;
+    size_t ws_bytes = lora_fft_workspace_bytes(cfg.sf, cfg.samp_rate, cfg.bw);
+    void *ws = malloc(ws_bytes);
+    if (!ws) {
+        fprintf(stderr, "malloc failed\n");
+        free(chips);
+        fclose(csv);
+        return EXIT_FAILURE;
+    }
+    lora_fft_demod_ctx_t ctx;
+    if (lora_fft_demod_init(&ctx, cfg.sf, cfg.samp_rate, cfg.bw, ws, ws_bytes) != 0) {
+        fprintf(stderr, "init failed\n");
+        free(ws);
+        free(chips);
+        fclose(csv);
+        return EXIT_FAILURE;
+    }
 
     for (size_t i = 0; i < npts; ++i) {
         float snr_linear = powf(10.0f, snr_db[i] / 10.0f);
@@ -115,7 +131,9 @@ int main(void) {
         }
         for (size_t n = 0; n < nchips; ++n)
             noisy_q[n] = lora_float_to_q15(noisy[n]);
-        lora_fft_demod(noisy_q, symbols, cfg.sf, cfg.samp_rate, cfg.bw, 0.0f, nsym);
+        ctx.cfo = 0.0f;
+        ctx.cfo_phase = 0.0;
+        lora_fft_demod(&ctx, noisy_q, nsym, symbols);
         free(noisy_q);
 
         uint8_t whitened[LORA_MAX_NSYM];
@@ -136,6 +154,8 @@ int main(void) {
         free(noisy);
     }
 
+    lora_fft_demod_free(&ctx);
+    free(ws);
     free(chips);
     fclose(csv);
 

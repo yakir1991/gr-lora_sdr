@@ -4,6 +4,7 @@
 #include "lora_whitening.h"
 #include "lora_add_crc.h"
 #include <string.h>
+#include <stdlib.h>
 
 #ifdef LORA_LITE_FIXED_POINT
 #include "lora_fft_demod.h"
@@ -45,7 +46,22 @@ int lora_rx_chain(const float complex *restrict chips, size_t nchips,
         qchips[i].r = (int16_t)(re * q15_scale + (re >= 0 ? 0.5f : -0.5f));
         qchips[i].i = (int16_t)(im * q15_scale + (im >= 0 ? 0.5f : -0.5f));
     }
-    lora_fft_demod(qchips, symbols, sf, samp_rate, bw, 0.0f, nsym);
+    size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
+    if (ws_bytes == 0)
+        return -1;
+    void *ws = malloc(ws_bytes);
+    if (!ws)
+        return -1;
+    lora_fft_demod_ctx_t ctx;
+    if (lora_fft_demod_init(&ctx, sf, samp_rate, bw, ws, ws_bytes) != 0) {
+        free(ws);
+        return -1;
+    }
+    ctx.cfo = 0.0f;
+    ctx.cfo_phase = 0.0;
+    lora_fft_demod(&ctx, qchips, nsym, symbols);
+    lora_fft_demod_free(&ctx);
+    free(ws);
 #else
 #error "lora_rx_chain requires LORA_LITE_FIXED_POINT"
 #endif

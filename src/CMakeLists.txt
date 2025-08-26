@@ -69,7 +69,7 @@ if(LORA_LITE_USE_LIQUID_FFT)
   target_link_libraries(lora_fft PUBLIC Liquid::liquid)
 endif()
 
-add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c)
+add_library(lora_fft_demod lora_fft_demod.c)
 target_include_directories(lora_fft_demod PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
