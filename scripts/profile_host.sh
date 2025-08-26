@@ -2,7 +2,7 @@
 set -e
 
 BUILD_DIR="$(pwd)/build"
-RESULTS_DIR="$(pwd)/results"
+RESULTS_DIR="${RESULTS_DIR:-$(pwd)/results}"
 CSV="$RESULTS_DIR/bench.csv"
 
 cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DLORA_LITE_BENCHMARK=ON

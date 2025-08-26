@@ -24,19 +24,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libliquid-dev
       - name: Run profiling script
+        env:
+          RESULTS_DIR: ${{ github.workspace }}/bench_out
         run: |
+          mkdir -p "$RESULTS_DIR"
           chmod +x scripts/profile_host.sh
           ./scripts/profile_host.sh
-      - name: Prepare benchmark results directory
-        run: mkdir -p results
-      - name: Run bench_lora_chain for CSV
-        working-directory: results
-        run: ../build/tests/bench_lora_chain 2> bench_stderr.log
       - name: Upload profiling artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: host-profile
-          path: |
-            results/profile_*.txt
-            results/bench_results.csv
-            results/bench_stderr.log
+          path: bench_out/**
