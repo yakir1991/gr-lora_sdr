@@ -6,8 +6,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifdef LORA_LITE_FIXED_POINT
 #include "lora_fft_demod.h"
+#ifdef LORA_LITE_FIXED_POINT
 #include "lora_fixed.h"
 #endif
 
@@ -47,9 +47,14 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
         qchips[i].r = (int16_t)(re * q15_scale + (re >= 0 ? 0.5f : -0.5f));
         qchips[i].i = (int16_t)(im * q15_scale + (im >= 0 ? 0.5f : -0.5f));
     }
+    const lora_q15_complex *chip_ptr = qchips;
+#else
+    const float complex *chip_ptr = chips;
+#endif
+
     size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
     if (ws_bytes == 0)
-        return LORA_ERR_INVALID_ARG;
+        return LORA_ERR_UNSUPPORTED;
     void *fft_ws = aligned_alloc(32, ws_bytes);
     if (!fft_ws)
         return LORA_ERR_OOM;
@@ -60,12 +65,9 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
     }
     ctx.cfo = 0.0f;
     ctx.cfo_phase = 0.0;
-    lora_fft_demod(&ctx, qchips, nsym, symbols);
+    lora_fft_demod(&ctx, chip_ptr, nsym, symbols);
     lora_fft_demod_free(&ctx);
     free(fft_ws);
-#else
-#error "lora_rx_chain requires LORA_LITE_FIXED_POINT"
-#endif
 
     uint8_t *whitened = ws->whitened;
     for (size_t i = 0; i < nsym; ++i)

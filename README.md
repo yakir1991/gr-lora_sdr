@@ -6,6 +6,8 @@ lora_lite is a sandbox for experimenting with LoRa® software-defined radio comp
 - **Standalone C implementation** – signal-processing blocks are written in portable C with no dependency on GNU Radio.
 - **Modular block structure** – each component is an independent module with its own tests.
 - **Simplified build system** – uses only CMake and CTest for quick setup and easy CI integration.
+- **Dual math paths** – builds support floating-point or Q15 fixed-point demodulation; set
+  `-DLORA_LITE_FIXED_POINT=ON` to use the fixed-point variant.
 
 The original GNU Radio-based implementation is preserved in [legacy_gr_lora_sdr/](legacy_gr_lora_sdr/) and remains unmodified for reference.
 
