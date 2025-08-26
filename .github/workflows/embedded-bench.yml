@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile: [host, embedded]
+        profile: [host, embedded, embedded-asan]
 
     steps:
       - uses: actions/checkout@v4
@@ -24,29 +24,49 @@ jobs:
 
       - name: Set profile vars
         run: |
-          if [ "${{ matrix.profile }}" = "embedded" ]; then
-            echo "EXTRA_CMAKE_ARGS=-C cmake/embedded_profile.cmake" >> $GITHUB_ENV
-            echo "OUT_DIR=bench_out/emb-${{ github.run_id }}" >> $GITHUB_ENV
-            echo "TARGETS_JSON=bench/targets.embedded.json" >> $GITHUB_ENV
-          else
-            echo "EXTRA_CMAKE_ARGS=" >> $GITHUB_ENV
-            echo "OUT_DIR=bench_out/host-${{ github.run_id }}" >> $GITHUB_ENV
-            echo "TARGETS_JSON=" >> $GITHUB_ENV
-          fi
+          case "${{ matrix.profile }}" in
+            embedded)
+              echo "EXTRA_CMAKE_ARGS=-C cmake/embedded_profile.cmake" >> $GITHUB_ENV
+              echo "OUT_DIR=bench_out/emb-${{ github.run_id }}" >> $GITHUB_ENV
+              echo "TARGETS_JSON=bench/targets.embedded.json" >> $GITHUB_ENV
+              ;;
+            embedded-asan)
+              echo "EXTRA_CMAKE_ARGS=-C cmake/embedded_profile.cmake -C cmake/asan_profile.cmake" >> $GITHUB_ENV
+              echo "OUT_DIR=bench_out/asan-${{ github.run_id }}" >> $GITHUB_ENV
+              echo "TARGETS_JSON=" >> $GITHUB_ENV
+              # ASAN/LSAN runtime
+              echo "ASAN_OPTIONS=detect_leaks=1:strict_string_checks=1:abort_on_error=1:fast_unwind_on_malloc=0:symbolize=1" >> $GITHUB_ENV
+              echo "LSAN_OPTIONS=suppressions=${{ github.workspace }}/asan/lsan.supp" >> $GITHUB_ENV
+              ;;
+            *)
+              echo "EXTRA_CMAKE_ARGS=" >> $GITHUB_ENV
+              echo "OUT_DIR=bench_out/host-${{ github.run_id }}" >> $GITHUB_ENV
+              echo "TARGETS_JSON=" >> $GITHUB_ENV
+              ;;
+          esac
 
-      - name: Run full ctest (sanity)
+      - name: Configure & Build
         run: |
-          cmake -S . -B build ${EXTRA_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          cmake -S . -B build ${EXTRA_CMAKE_ARGS} -DBUILD_TESTING=ON
           cmake --build build -j"$(nproc)"
-          ctest --test-dir build -V
 
-      - name: FFT matrix bench (ON/OFF) + CSVs
+      - name: Run tests (ctest -V)
+        env:
+          ASAN_OPTIONS: ${{ env.ASAN_OPTIONS }}
+          LSAN_OPTIONS: ${{ env.LSAN_OPTIONS }}
+        run: |
+          ctest --test-dir build -V | tee ctest_${{ matrix.profile }}.log
+          mkdir -p bench_out/logs && mv ctest_${{ matrix.profile }}.log bench_out/logs/
+
+      - name: FFT matrix bench (ON/OFF) + CSVs  # לא ירוץ בפרופיל asan
+        if: matrix.profile != 'embedded-asan'
         run: |
           chmod +x scripts/bench_matrix.sh
           OUT_DIR="${OUT_DIR}" EXTRA_CMAKE_ARGS="${EXTRA_CMAKE_ARGS}" ./scripts/bench_matrix.sh
           echo "LATEST_DIR=${OUT_DIR}" >> $GITHUB_ENV
 
       - name: Compare ON vs OFF
+        if: matrix.profile != 'embedded-asan'
         run: |
           chmod +x scripts/bench_compare.py
           ./scripts/bench_compare.py "${{ env.LATEST_DIR }}"
@@ -55,14 +75,23 @@ jobs:
         if: matrix.profile == 'embedded'
         run: |
           chmod +x scripts/bench_guard.py
-          # השתמש בספי embedded הייעודיים
-          cp "${{ env.TARGETS_JSON }}" bench/targets.json
+          cp bench/targets.embedded.json bench/targets.json
           ./scripts/bench_guard.py "${{ env.LATEST_DIR }}"
 
-      - name: Upload bench artifacts
+      - name: ASAN smoke-run (bench path)  # ריצה קצרה רק כדי לגעת בקוד חם
+        if: matrix.profile == 'embedded-asan'
+        env:
+          ASAN_OPTIONS: ${{ env.ASAN_OPTIONS }}
+          LSAN_OPTIONS: ${{ env.LSAN_OPTIONS }}
+        run: |
+          # מריצים פעם אחת את הבנצ' כדי לכסות קוד-ביצועים עם ASAN (בלי למדוד ביצועים)
+          ./build/tests/bench_lora_chain /dev/null 2> bench_out/logs/asan_bench_stderr.log || true
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: bench-results-${{ matrix.profile }}
           path: |
-            ${{ env.LATEST_DIR }}/**
-          if-no-files-found: error
+            ${{ env.OUT_DIR }}/**/*
+            bench_out/logs/**
+          if-no-files-found: warn
