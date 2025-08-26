@@ -10,7 +10,6 @@
 #include <time.h>
 
 #include "lora_fft_demod.h"
-#include "lora_fft_demod_ctx.h"
 #include "lora_fixed.h"
 #include "lora_log.h"
 #include "lora_mod.h"
@@ -45,9 +44,22 @@ int main(void)
         chips[i] = lora_float_to_q15(chips_f[i]);
 
     uint32_t rec[4] = {0};
+    size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
+    void *ws = malloc(ws_bytes);
+    if (!ws)
+        return 1;
+    lora_fft_demod_ctx_t ctx;
+    if (lora_fft_demod_init(&ctx, sf, samp_rate, bw, ws, ws_bytes) != 0) {
+        free(ws);
+        return 1;
+    }
+    ctx.cfo = 0.0f;
+    ctx.cfo_phase = 0.0;
     clock_t t0 = clock();
-    lora_fft_demod(chips, rec, sf, samp_rate, bw, 0.0f, nsym);
+    lora_fft_demod(&ctx, chips, nsym, rec);
     clock_t t1 = clock();
+    lora_fft_demod_free(&ctx);
+    free(ws);
 
     for (size_t i = 0; i < nsym; ++i) {
         int diff = (int)rec[i] - (int)symbols[i];

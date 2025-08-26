@@ -1,4 +1,4 @@
-#include "lora_fft_demod_ctx.h"
+#include "lora_fft_demod.h"
 #include "lora_mod.h"
 #include "lora_log.h"
 #include <stdio.h>
