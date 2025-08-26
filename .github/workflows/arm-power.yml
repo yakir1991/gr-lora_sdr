@@ -1,0 +1,43 @@
+name: arm-power
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'scripts/energy/**'
+      - '.github/workflows/arm-power.yml'
+      - 'src/**'
+      - 'tests/**'
+      - 'CMakeLists.txt'
+
+jobs:
+  power:
+    # דרוש self-hosted ARM64 (למשל Jetson / RPi 64bit)
+    runs-on: [self-hosted, linux, ARM64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config libliquid-dev python3
+
+      - name: Run power matrix (OFF/ON)
+        env:
+          # אפשר לעזור לגלאי אם צריך: POWER_FILE, VOLTAGE_FILE, CURRENT_FILE
+          DURATION_SEC: 20
+          INTERVAL_MS: 50
+        run: |
+          chmod +x scripts/energy/run_power_matrix.sh
+          ./scripts/energy/run_power_matrix.sh
+          echo "POWER_DIR=$(ls -1d power_out/* | tail -n1)" >> $GITHUB_ENV
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arm-power-results
+          path: |
+            ${{ env.POWER_DIR }}/**
+          if-no-files-found: error
