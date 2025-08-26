@@ -16,9 +16,15 @@ endif()
 option(LORA_LITE_ENABLE_LOGGING "Enable logging output" ON)
 option(LORA_LITE_BENCHMARK "Build benchmark harnesses" OFF)
 option(ENABLE_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
+option(LORA_LITE_EMB_THROUGHPUT "Favor throughput over size on embedded" OFF)
 
 if(LORA_LITE_BENCHMARK)
   add_compile_options(-O3 -DNDEBUG)
+endif()
+
+if(LORA_LITE_EMB_THROUGHPUT)
+  string(REPLACE "-Os" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+  add_compile_options(-O3 -DNDEBUG -fno-math-errno -fno-trapping-math)
 endif()
 
 if(ENABLE_SANITIZERS AND NOT CMAKE_BUILD_TYPE STREQUAL "Release")
