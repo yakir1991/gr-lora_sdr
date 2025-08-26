@@ -203,18 +203,17 @@ DURATION_SEC=20 ./scripts/energy/run_power_matrix.sh
 
 **Tip:** For stable numbers, pin CPU freq/governor to `performance` and disable background services. Use longer `DURATION_SEC` on noisy boards.
 
-איך משתמשים (בקצרה)
-
-על ה-ARM:
+How to use (briefly)
+On the ARM:
 
 sudo apt-get install -y python3
-export POWER_FILE=/sys/class/power_supply/*/power_now   # אם צריך לעזור לגלאי
+export POWER_FILE=/sys/class/power_supply/*/power_now   
 DURATION_SEC=20 ./scripts/energy/run_power_matrix.sh
 
 
-להשוואה:
+For comparison:
 
 ./scripts/energy/energy_compare.py power_out/<timestamp>
 
 
-ב-CI: להפעיל את arm-power על self-hosted ARM64.
+In CI: run arm-power on self-hosted ARM64.
