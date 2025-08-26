@@ -4,6 +4,7 @@ set -Eeuo pipefail
 BUILD_TYPE="${BUILD_TYPE:-Release}"
 TIME_TAG="$(date +%Y%m%d-%H%M%S)"
 OUT_DIR="${OUT_DIR:-bench_out/$TIME_TAG}"
+EXTRA_CMAKE_ARGS="${EXTRA_CMAKE_ARGS:-}"
 
 need_liquid_dev() {
   if ! dpkg -s libliquid-dev >/dev/null 2>&1; then
@@ -18,7 +19,7 @@ run_one() {
 
   echo ""
   echo "=== Building (${BUILD_TYPE}, LORA_LITE_USE_LIQUID_FFT=${use_liq}) -> ${bdir} ==="
-  cmake -S . -B "$bdir" \
+  cmake -S . -B "$bdir" ${EXTRA_CMAKE_ARGS} \
     -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
     -DBUILD_TESTING=ON \
     -DLORA_LITE_USE_LIQUID_FFT="${use_liq}"
@@ -28,7 +29,6 @@ run_one() {
   echo "--- Running bench_lora_chain -> ${csv}"
   "./${bdir}/tests/bench_lora_chain" "${csv}"
 
-  # Echo short line for CI logs
   if [ -s "${csv}" ]; then
     local pps
     pps="$(awk -F, 'NR==2 {print $3}' "${csv}" 2>/dev/null || true)"
