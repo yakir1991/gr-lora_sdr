@@ -28,6 +28,13 @@ int main(void)
             LORA_LOG_INFO("Interleaver golden test failed for SF %u", sf);
             return 1;
         }
+
+        uint8_t output[16];
+        lora_deinterleave(golden[sf - 7], output, sf, sf_app, cw_len);
+        if (memcmp(output, input, sf_app) != 0) {
+            LORA_LOG_INFO("Deinterleaver golden test failed for SF %u", sf);
+            return 1;
+        }
     }
     LORA_LOG_INFO("Interleaver golden test passed");
     return 0;
