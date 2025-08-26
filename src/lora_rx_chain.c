@@ -14,9 +14,10 @@
 int lora_rx_chain(const float complex *restrict chips, size_t nchips,
                   uint8_t *restrict payload, size_t payload_buf_len,
                   size_t *restrict payload_len_out,
-                  const lora_chain_cfg *cfg)
+                  const lora_chain_cfg *cfg,
+                  lora_rx_workspace *ws)
 {
-    if (!chips || !payload || !payload_len_out || payload_buf_len == 0 || !cfg)
+    if (!chips || !payload || !payload_len_out || payload_buf_len == 0 || !cfg || !ws)
         return -1;
 
     const uint8_t sf = cfg->sf;
@@ -27,10 +28,10 @@ int lora_rx_chain(const float complex *restrict chips, size_t nchips,
     if (nsym > LORA_MAX_NSYM)
         return -1;
 
-    uint32_t symbols[LORA_MAX_NSYM];
+    uint32_t *symbols = ws->symbols;
 
 #ifdef LORA_LITE_FIXED_POINT
-    lora_q15_complex qchips[LORA_MAX_CHIPS];
+    lora_q15_complex *qchips = ws->qchips;
     const float q15_scale = 32767.0f;
     for (size_t i = 0; i < nchips && i < LORA_MAX_CHIPS; ++i) {
         float re = crealf(chips[i]);
@@ -49,28 +50,28 @@ int lora_rx_chain(const float complex *restrict chips, size_t nchips,
     size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
     if (ws_bytes == 0)
         return -1;
-    void *ws = aligned_alloc(32, ws_bytes);
-    if (!ws)
+    void *fft_ws = aligned_alloc(32, ws_bytes);
+    if (!fft_ws)
         return -1;
     lora_fft_demod_ctx_t ctx;
-    if (lora_fft_demod_init(&ctx, sf, samp_rate, bw, ws, ws_bytes) != 0) {
-        free(ws);
+    if (lora_fft_demod_init(&ctx, sf, samp_rate, bw, fft_ws, ws_bytes) != 0) {
+        free(fft_ws);
         return -1;
     }
     ctx.cfo = 0.0f;
     ctx.cfo_phase = 0.0;
     lora_fft_demod(&ctx, qchips, nsym, symbols);
     lora_fft_demod_free(&ctx);
-    free(ws);
+    free(fft_ws);
 #else
 #error "lora_rx_chain requires LORA_LITE_FIXED_POINT"
 #endif
 
-    uint8_t whitened[LORA_MAX_NSYM];
+    uint8_t *whitened = ws->whitened;
     for (size_t i = 0; i < nsym; ++i)
         whitened[i] = (uint8_t)(symbols[i] & 0xFF);
 
-    uint8_t payload_crc[LORA_MAX_NSYM];
+    uint8_t *payload_crc = ws->payload_crc;
     lora_dewhiten(whitened, payload_crc, nsym);
 
     if (nsym < 2)
@@ -81,7 +82,7 @@ int lora_rx_chain(const float complex *restrict chips, size_t nchips,
     uint8_t crc1 = payload_crc[payload_len];
     uint8_t crc2 = payload_crc[payload_len + 1];
 
-    uint8_t tmp[LORA_MAX_NSYM];
+    uint8_t *tmp = ws->tmp;
     memcpy(tmp, payload_crc, nsym);
     tmp[payload_len] = 0;
     tmp[payload_len + 1] = 0;
@@ -102,7 +103,9 @@ int lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg)
     if (!in || !out || !cfg)
         return -1;
 
-    float complex chips[LORA_MAX_CHIPS];
+    float complex *chips = malloc(sizeof(float complex) * LORA_MAX_CHIPS);
+    if (!chips)
+        return -1;
     size_t total = 0;
     size_t max_bytes = LORA_MAX_CHIPS * sizeof(float complex);
     uint8_t *chip_bytes = (uint8_t *)chips;
@@ -114,12 +117,22 @@ int lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg)
     }
     size_t nchips = total / sizeof(float complex);
 
-    uint8_t payload[LORA_MAX_PAYLOAD_LEN];
-    size_t payload_len;
-    if (lora_rx_chain(chips, nchips, payload, sizeof(payload), &payload_len, cfg) != 0)
+    uint8_t *payload = malloc(LORA_MAX_PAYLOAD_LEN);
+    if (!payload) {
+        free(chips);
         return -1;
+    }
+    size_t payload_len;
+    static lora_rx_workspace ws;
+    if (lora_rx_chain(chips, nchips, payload, LORA_MAX_PAYLOAD_LEN, &payload_len, cfg, &ws) != 0) {
+        free(chips);
+        free(payload);
+        return -1;
+    }
 
     size_t wr = out->write(out->ctx, payload, payload_len);
+    free(chips);
+    free(payload);
     return (wr == payload_len) ? 0 : -1;
 }
 
