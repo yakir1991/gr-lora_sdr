@@ -163,3 +163,13 @@ cmake --build build-asan -j"$(nproc)"
 ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 LSAN_OPTIONS="suppressions=$(pwd)/asan/lsan.supp" ctest --test-dir build-asan -V
 ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 ./build-asan/tests/bench_lora_chain /dev/null || true
 ```
+
+#### UBSAN profile (CI-only by default)
+The `embedded-ubsan` CI profile builds with UndefinedBehaviorSanitizer (no LTO, `RelWithDebInfo`), runs `ctest -V`, and a short smoke-run of `bench_lora_chain`.
+Local run:
+```bash
+cmake -S . -B build-ubsan -C cmake/embedded_profile.cmake -C cmake/ubsan_profile.cmake -DBUILD_TESTING=ON
+cmake --build build-ubsan -j"$(nproc)"
+UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ctest --test-dir build-ubsan -V
+UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 ./build-ubsan/tests/bench_lora_chain /dev/null || true
+```
