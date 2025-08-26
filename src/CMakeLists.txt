@@ -69,14 +69,12 @@ if(LORA_LITE_USE_LIQUID_FFT)
   target_link_libraries(lora_fft PUBLIC Liquid::liquid)
 endif()
 
-if(LORA_LITE_FIXED_POINT)
 add_library(lora_fft_demod lora_fft_demod.c lora_fft_demod_ctx.c)
 target_include_directories(lora_fft_demod PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/lora_lite>)
 target_link_libraries(lora_fft_demod PUBLIC lora_utils lora_fft m)
-endif()
 
 add_library(lora_header lora_header.c)
 target_include_directories(lora_header PUBLIC
@@ -97,7 +95,6 @@ target_include_directories(lora_tx_chain PUBLIC
   $<INSTALL_INTERFACE:include/lora_lite>)
 target_link_libraries(lora_tx_chain PUBLIC lora_add_crc lora_whitening lora_mod m)
 
-if(LORA_LITE_FIXED_POINT)
 add_library(lora_rx_chain lora_rx_chain.c)
 target_include_directories(lora_rx_chain PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -106,7 +103,6 @@ target_link_libraries(lora_rx_chain PUBLIC lora_add_crc lora_whitening lora_fft_
 
 add_executable(lora_chain_runner lora_chain_runner.c)
 target_link_libraries(lora_chain_runner PRIVATE lora_tx_chain lora_rx_chain lora_io m)
-endif()
 
 set(LORA_LITE_LIBS
   signal_utils

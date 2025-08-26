@@ -1,8 +1,9 @@
-#ifdef LORA_LITE_FIXED_POINT
 #include "lora_fft_demod_ctx.h"
 #include "lora_log.h"
 #include "lora_utils.h"
+#ifdef LORA_LITE_FIXED_POINT
 #include "q15_to_cf.h"
+#endif
 #include <math.h>
 #include <stdalign.h>
 #include <stdint.h>
@@ -108,7 +109,12 @@ void lora_fft_demod_destroy(lora_fft_demod_ctx_t *ctx) {
 }
 
 void lora_fft_process(lora_fft_demod_ctx_t *ctx,
-                      const lora_q15_complex *restrict chips, size_t nsym,
+#ifdef LORA_LITE_FIXED_POINT
+                      const lora_q15_complex *restrict chips,
+#else
+                      const float complex *restrict chips,
+#endif
+                      size_t nsym,
                       uint32_t *restrict symbols) {
   if (!ctx || !chips || !symbols)
     return;
@@ -120,17 +126,24 @@ void lora_fft_process(lora_fft_demod_ctx_t *ctx,
   float complex *restrict fft_in = ctx->fft_in;
   float complex *restrict fft_out = ctx->fft_out;
 
+#ifdef LORA_LITE_FIXED_POINT
   _Alignas(32) float complex tmp[LORA_MAX_SPS];
+#endif
 
   if (ctx->cfo == 0.0f) {
     for (size_t s = 0; s < nsym; ++s) {
+#ifdef LORA_LITE_FIXED_POINT
       const lora_q15_complex *restrict symchips = chips + s * sps;
       q15_to_cf(tmp, symchips, sps);
+      const float complex *restrict sc = tmp;
+#else
+      const float complex *restrict sc = chips + s * sps;
+#endif
       for (uint32_t b = 0; b < n_bins; ++b) {
         float complex acc = 0.0f;
         uint32_t n = b * os_factor;
         for (uint32_t k = 0; k < os_factor; ++k, ++n)
-          acc += tmp[n] * downchirp[n];
+          acc += sc[n] * downchirp[n];
         fft_in[b] = acc;
       }
       lora_fft_exec_fwd(&ctx->fft, fft_in, fft_out);
@@ -154,13 +167,18 @@ void lora_fft_process(lora_fft_demod_ctx_t *ctx,
   float complex step = cexpf(I * (float)dphi);
 
   for (size_t s = 0; s < nsym; ++s) {
+#ifdef LORA_LITE_FIXED_POINT
     const lora_q15_complex *restrict symchips = chips + s * sps;
     q15_to_cf(tmp, symchips, sps);
+    const float complex *restrict sc = tmp;
+#else
+    const float complex *restrict sc = chips + s * sps;
+#endif
     for (uint32_t b = 0; b < n_bins; ++b) {
       float complex acc = 0.0f;
       uint32_t n = b * os_factor;
       for (uint32_t k = 0; k < os_factor; ++k, ++n) {
-        float complex c = tmp[n] * downchirp[n];
+        float complex c = sc[n] * downchirp[n];
         c *= phase;
         phase *= step;
         acc += c;
@@ -183,5 +201,3 @@ void lora_fft_process(lora_fft_demod_ctx_t *ctx,
 
   ctx->cfo_phase += (double)nsym * (double)sps * dphi;
 }
-
-#endif /* LORA_LITE_FIXED_POINT */
