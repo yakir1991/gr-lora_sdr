@@ -7,6 +7,11 @@ on:
 jobs:
   bench:
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [host, embedded]
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -17,33 +22,47 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential cmake pkg-config libliquid-dev
 
+      - name: Set profile vars
+        run: |
+          if [ "${{ matrix.profile }}" = "embedded" ]; then
+            echo "EXTRA_CMAKE_ARGS=-C cmake/embedded_profile.cmake" >> $GITHUB_ENV
+            echo "OUT_DIR=bench_out/emb-${{ github.run_id }}" >> $GITHUB_ENV
+            echo "TARGETS_JSON=bench/targets.embedded.json" >> $GITHUB_ENV
+          else
+            echo "EXTRA_CMAKE_ARGS=" >> $GITHUB_ENV
+            echo "OUT_DIR=bench_out/host-${{ github.run_id }}" >> $GITHUB_ENV
+            echo "TARGETS_JSON=" >> $GITHUB_ENV
+          fi
+
       - name: Run full ctest (sanity)
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          cmake -S . -B build ${EXTRA_CMAKE_ARGS} -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
           cmake --build build -j"$(nproc)"
           ctest --test-dir build -V
 
       - name: FFT matrix bench (ON/OFF) + CSVs
         run: |
           chmod +x scripts/bench_matrix.sh
-          ./scripts/bench_matrix.sh
-          echo "LATEST_DIR=$(ls -1d bench_out/* | tail -n1)" >> $GITHUB_ENV
+          OUT_DIR="${OUT_DIR}" EXTRA_CMAKE_ARGS="${EXTRA_CMAKE_ARGS}" ./scripts/bench_matrix.sh
+          echo "LATEST_DIR=${OUT_DIR}" >> $GITHUB_ENV
 
       - name: Compare ON vs OFF
         run: |
           chmod +x scripts/bench_compare.py
           ./scripts/bench_compare.py "${{ env.LATEST_DIR }}"
 
-      - name: Guard thresholds
+      - name: Guard thresholds (embedded only)
+        if: matrix.profile == 'embedded'
         run: |
           chmod +x scripts/bench_guard.py
+          # השתמש בספי embedded הייעודיים
+          cp "${{ env.TARGETS_JSON }}" bench/targets.json
           ./scripts/bench_guard.py "${{ env.LATEST_DIR }}"
 
       - name: Upload bench artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: bench-results
+          name: bench-results-${{ matrix.profile }}
           path: |
             ${{ env.LATEST_DIR }}/**
           if-no-files-found: error
-

@@ -148,3 +148,8 @@ Run the guard on a results folder:
 ```bash
 ./scripts/bench_guard.py "$LATEST_DIR"
 ```
+
+#### CI matrix: host vs embedded
+The workflow `.github/workflows/embedded-bench.yml` runs both host and embedded profiles:
+- Host: build, tests, bench, compare (no guard).
+- Embedded: build with `-C cmake/embedded_profile.cmake`, bench, compare, and **guard** with thresholds from `bench/targets.embedded.json`.
