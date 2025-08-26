@@ -20,16 +20,16 @@ typedef kiss_fft_cpx lora_fft_cpx;
  * processing is stored here so that runtime operation performs no dynamic
  * allocation. */
 typedef struct {
-  uint8_t sf;        /* spreading factor */
-  uint32_t fs;       /* sample rate */
-  uint32_t bw;       /* signal bandwidth */
-  uint32_t n_bins;   /* number of FFT bins */
-  uint32_t fft_len;  /* FFT length (same as n_bins) */
-  uint32_t os_factor;/* oversampling factor */
-  uint32_t sps;      /* samples per symbol */
+  uint8_t sf;         /* spreading factor */
+  uint32_t fs;        /* sample rate */
+  uint32_t bw;        /* signal bandwidth */
+  uint32_t n_bins;    /* number of FFT bins */
+  uint32_t fft_len;   /* FFT length (same as n_bins) */
+  uint32_t os_factor; /* oversampling factor */
+  uint32_t sps;       /* samples per symbol */
 
-  float cfo;         /* carrier frequency offset in Hz */
-  double cfo_phase;  /* accumulated CFO phase */
+  float cfo;        /* carrier frequency offset in Hz */
+  double cfo_phase; /* accumulated CFO phase */
 
 #ifndef LORA_LITE_FIXED_POINT
   float complex *downchirp; /* precomputed downchirp */
@@ -37,9 +37,9 @@ typedef struct {
   lora_q15_complex *downchirp; /* precomputed downchirp */
 #endif
 
-  lora_fft_plan fft;        /* FFT plan */
-  lora_fft_cpx *cx_in;      /* FFT input buffer */
-  lora_fft_cpx *cx_out;     /* FFT output buffer */
+  lora_fft_plan fft;    /* FFT plan */
+  lora_fft_cpx *cx_in;  /* FFT input buffer */
+  lora_fft_cpx *cx_out; /* FFT output buffer */
 } lora_fft_ctx_t;
 
 /* Return the number of bytes required for the workspace used by the
@@ -58,8 +58,7 @@ void lora_fft_destroy(lora_fft_ctx_t *ctx);
 /* Demodulate nsym symbols from the chips array and store the recovered symbol
  * indices in the symbols array.  All working buffers are taken from the
  * context and no dynamic allocation occurs. */
-void lora_fft_process(lora_fft_ctx_t *ctx, const float complex *chips,
-                      size_t nsym, uint32_t *symbols);
+void lora_fft_process(lora_fft_ctx_t *ctx, const float complex *restrict chips,
+                      size_t nsym, uint32_t *restrict symbols);
 
 #endif /* LORA_FFT_DEMOD_CTX_H */
-

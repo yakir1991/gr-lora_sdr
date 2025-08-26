@@ -1,6 +1,6 @@
 #include "lora_fft_demod_ctx.h"
-#include "lora_utils.h"
 #include "lora_log.h"
+#include "lora_utils.h"
 #include <math.h>
 #include <stdalign.h>
 #include <stdint.h>
@@ -74,7 +74,8 @@ int lora_fft_init(lora_fft_ctx_t *ctx, uint8_t sf, uint32_t fs, uint32_t bw,
   ctx->os_factor = os_factor;
   ctx->sps = sps;
 
-  unsigned char *p = align_ptr((unsigned char *)workspace, alignof(lora_fft_cpx));
+  unsigned char *p =
+      align_ptr((unsigned char *)workspace, alignof(lora_fft_cpx));
 
 #ifndef LORA_LITE_LIQUID_FFT
   size_t cfg_sz = 0;
@@ -99,7 +100,8 @@ int lora_fft_init(lora_fft_ctx_t *ctx, uint8_t sf, uint32_t fs, uint32_t bw,
   ctx->cx_out = (lora_fft_cpx *)p;
 
 #ifdef LORA_LITE_LIQUID_FFT
-  ctx->fft = fft_create_plan(fft_len, ctx->cx_in, ctx->cx_out, LIQUID_FFT_FORWARD, 0);
+  ctx->fft =
+      fft_create_plan(fft_len, ctx->cx_in, ctx->cx_out, LIQUID_FFT_FORWARD, 0);
 #endif
 
 #ifndef LORA_LITE_FIXED_POINT
@@ -127,8 +129,8 @@ void lora_fft_destroy(lora_fft_ctx_t *ctx) {
 #endif
 }
 
-void lora_fft_process(lora_fft_ctx_t *ctx, const float complex *chips,
-                      size_t nsym, uint32_t *symbols) {
+void lora_fft_process(lora_fft_ctx_t *ctx, const float complex *restrict chips,
+                      size_t nsym, uint32_t *restrict symbols) {
   if (!ctx || !chips || !symbols)
     return;
 
@@ -136,46 +138,95 @@ void lora_fft_process(lora_fft_ctx_t *ctx, const float complex *chips,
   uint32_t n_bins = ctx->n_bins;
   uint32_t os_factor = ctx->os_factor;
   uint32_t fft_len = ctx->fft_len;
-  float complex phase = 1.0f;
-  float complex cfo_step = 1.0f;
-  double dphi = 0.0;
 
-  if (ctx->cfo != 0.0f) {
-    dphi = -2.0 * M_PI * ctx->cfo / (double)ctx->fs;
-    phase = cexpf(I * (float)ctx->cfo_phase);
-    cfo_step = cexpf(I * (float)dphi);
+#ifndef LORA_LITE_FIXED_POINT
+  float complex *restrict downchirp = ctx->downchirp;
+#else
+  lora_q15_complex *restrict downchirp = ctx->downchirp;
+#endif
+  lora_fft_cpx *restrict cx_in = ctx->cx_in;
+  lora_fft_cpx *restrict cx_out = ctx->cx_out;
+
+  if (ctx->cfo == 0.0f) {
+    for (size_t s = 0; s < nsym; ++s) {
+      const float complex *restrict symchips = chips + s * sps;
+      for (uint32_t b = 0; b < n_bins; ++b) {
+        float complex acc = 0.0f;
+        uint32_t n = b * os_factor;
+        for (uint32_t k = 0; k < os_factor; ++k, ++n) {
+#ifndef LORA_LITE_FIXED_POINT
+          acc += symchips[n] * downchirp[n];
+#else
+          lora_q15_complex cq = lora_float_to_q15(symchips[n]);
+          lora_q15_complex m = lora_q15_mul(cq, downchirp[n]);
+          acc += lora_q15_to_float(m);
+#endif
+        }
+#ifdef LORA_LITE_LIQUID_FFT
+        cx_in[b] = acc;
+#else
+        cx_in[b].r = crealf(acc);
+        cx_in[b].i = cimagf(acc);
+#endif
+      }
+#ifdef LORA_LITE_LIQUID_FFT
+      fft_execute(ctx->fft);
+#else
+      kiss_fft(ctx->fft, cx_in, cx_out);
+#endif
+
+      float max_mag = 0.0f;
+      uint32_t max_idx = 0;
+      for (uint32_t i = 0; i < fft_len; ++i) {
+        float mag;
+#ifdef LORA_LITE_LIQUID_FFT
+        float complex v = cx_out[i];
+        mag = crealf(v) * crealf(v) + cimagf(v) * cimagf(v);
+#else
+        mag = cx_out[i].r * cx_out[i].r + cx_out[i].i * cx_out[i].i;
+#endif
+        if (mag > max_mag) {
+          max_mag = mag;
+          max_idx = i;
+        }
+      }
+      symbols[s] = max_idx & (ctx->n_bins - 1u);
+    }
+    return;
   }
 
+  double dphi = -2.0 * M_PI * ctx->cfo / (double)ctx->fs;
+  float complex phase = cexpf(I * (float)ctx->cfo_phase);
+  float complex cfo_step = cexpf(I * (float)dphi);
+
   for (size_t s = 0; s < nsym; ++s) {
-    const float complex *symchips = &chips[s * sps];
+    const float complex *restrict symchips = chips + s * sps;
     for (uint32_t b = 0; b < n_bins; ++b) {
       float complex acc = 0.0f;
-      for (uint32_t k = 0; k < os_factor; ++k) {
-        uint32_t n = b * os_factor + k;
+      uint32_t n = b * os_factor;
+      for (uint32_t k = 0; k < os_factor; ++k, ++n) {
 #ifndef LORA_LITE_FIXED_POINT
-        float complex c = symchips[n] * ctx->downchirp[n];
+        float complex c = symchips[n] * downchirp[n];
 #else
         lora_q15_complex cq = lora_float_to_q15(symchips[n]);
-        lora_q15_complex m = lora_q15_mul(cq, ctx->downchirp[n]);
+        lora_q15_complex m = lora_q15_mul(cq, downchirp[n]);
         float complex c = lora_q15_to_float(m);
 #endif
-        if (ctx->cfo != 0.0f) {
-          c *= phase;
-          phase *= cfo_step;
-        }
+        c *= phase;
+        phase *= cfo_step;
         acc += c;
       }
 #ifdef LORA_LITE_LIQUID_FFT
-      ctx->cx_in[b] = acc;
+      cx_in[b] = acc;
 #else
-      ctx->cx_in[b].r = crealf(acc);
-      ctx->cx_in[b].i = cimagf(acc);
+      cx_in[b].r = crealf(acc);
+      cx_in[b].i = cimagf(acc);
 #endif
     }
 #ifdef LORA_LITE_LIQUID_FFT
     fft_execute(ctx->fft);
 #else
-    kiss_fft(ctx->fft, ctx->cx_in, ctx->cx_out);
+    kiss_fft(ctx->fft, cx_in, cx_out);
 #endif
 
     float max_mag = 0.0f;
@@ -183,11 +234,10 @@ void lora_fft_process(lora_fft_ctx_t *ctx, const float complex *chips,
     for (uint32_t i = 0; i < fft_len; ++i) {
       float mag;
 #ifdef LORA_LITE_LIQUID_FFT
-      float complex v = ctx->cx_out[i];
+      float complex v = cx_out[i];
       mag = crealf(v) * crealf(v) + cimagf(v) * cimagf(v);
 #else
-      mag = ctx->cx_out[i].r * ctx->cx_out[i].r +
-            ctx->cx_out[i].i * ctx->cx_out[i].i;
+      mag = cx_out[i].r * cx_out[i].r + cx_out[i].i * cx_out[i].i;
 #endif
       if (mag > max_mag) {
         max_mag = mag;
@@ -197,7 +247,5 @@ void lora_fft_process(lora_fft_ctx_t *ctx, const float complex *chips,
     symbols[s] = max_idx & (ctx->n_bins - 1u);
   }
 
-  if (ctx->cfo != 0.0f)
-    ctx->cfo_phase += (double)nsym * (double)sps * dphi;
+  ctx->cfo_phase += (double)nsym * (double)sps * dphi;
 }
-
