@@ -1,0 +1,24 @@
+name: host-profile
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install profiling tools
+        run: sudo apt-get update && sudo apt-get install -y valgrind linux-tools-common linux-tools-generic
+      - name: Run profiling script
+        run: |
+          chmod +x scripts/profile_host.sh
+          ./scripts/profile_host.sh
+      - name: Upload profiling artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: host-profile
+          path: results/profile_*.txt
