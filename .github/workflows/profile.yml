@@ -1,8 +1,9 @@
+---
 name: host-profile
 
-on:
+'on':
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
@@ -12,7 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install profiling tools
-        run: sudo apt-get update && sudo apt-get install -y valgrind linux-tools-common linux-tools-generic
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y valgrind linux-tools-common \
+            linux-tools-generic
       - name: Install Liquid DSP
         run: |
           sudo apt-get update
@@ -21,8 +25,14 @@ jobs:
         run: |
           chmod +x scripts/profile_host.sh
           ./scripts/profile_host.sh
+      - name: Run bench_lora_chain for CSV
+        run: |
+          mkdir -p results && cd results
+          ../build/tests/bench_lora_chain
       - name: Upload profiling artifacts
         uses: actions/upload-artifact@v4
         with:
           name: host-profile
-          path: results/profile_*.txt
+          path: |
+            results/profile_*.txt
+            results/bench_results.csv
