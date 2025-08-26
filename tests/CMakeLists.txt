@@ -64,6 +64,11 @@ lora_add_test(test_lora_whitening
   LIBS lora_whitening
   PASS_REGEX "Whitening test passed")
 
+lora_add_test(test_whitening_golden
+  SOURCES test_whitening_golden.c
+  LIBS lora_whitening
+  PASS_REGEX "Whitening golden test passed")
+
 lora_add_test(test_lora_hamming
   SOURCES test_lora_hamming.c
   LIBS lora_hamming
@@ -74,10 +79,20 @@ lora_add_test(test_lora_interleaver
   LIBS lora_interleaver
   PASS_REGEX "Interleaver test passed")
 
+lora_add_test(test_interleaver_golden
+  SOURCES test_interleaver_golden.c
+  LIBS lora_interleaver
+  PASS_REGEX "Interleaver golden test passed")
+
 lora_add_test(test_lora_graymap
   SOURCES test_lora_graymap.c
   LIBS lora_graymap
   PASS_REGEX "Gray map test passed")
+
+lora_add_test(test_gray_golden
+  SOURCES test_gray_golden.c
+  LIBS lora_graymap
+  PASS_REGEX "Gray golden test passed")
 
 lora_add_test(test_os_factor_check
   SOURCES test_os_factor_check.c
