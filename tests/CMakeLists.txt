@@ -271,7 +271,8 @@ set_tests_properties(pps_guard PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINA
 # Micro-benchmark: q15_to_cf conversion
 if(LORA_LITE_FIXED_POINT)
   add_executable(bench_q15_to_cf benchmarks/bench_q15_to_cf.c)
-  target_link_libraries(bench_q15_to_cf PRIVATE lora_fft)
+  # Link via lora_fft_demod to ensure q15_to_cf resolves under LTO/GC
+  target_link_libraries(bench_q15_to_cf PRIVATE lora_fft_demod lora_fft)
   target_compile_definitions(bench_q15_to_cf PRIVATE LORA_LITE_ENABLE_LOGGING=0 LORA_LITE_FIXED_POINT)
   target_compile_options(bench_q15_to_cf PRIVATE -O3 -DNDEBUG)
   add_test(NAME bench_q15_to_cf COMMAND bench_q15_to_cf)

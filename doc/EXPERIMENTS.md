@@ -218,6 +218,52 @@ Notes: For these sizes the wins are modest and within run-to-run variance; howev
 
 ---
 
+## Summary Table (Baseline → Current)
+
+| Metric | Profile | Baseline | Current | Delta |
+|---|---|---:|---:|---:|
+| Demod time (CFO=0), sf7/os8 (µs/sym) | Embedded (fixed) | 31.00 | 10.25 | −66.9% |
+| Demod time (CFO=100 Hz), sf7/os8 (µs/sym) | Embedded (fixed) | 31.29 | 21.84 | −30.2% |
+| Whitening throughput (MB/s) | Host | 309 | 314 | +1.6% |
+| Whitening throughput (MB/s) | Embedded | 308 | 312 | +1.3% |
+| End‑to‑end throughput (pps) | Host | 9350.4 | 9372.8 | +0.24% |
+| End‑to‑end throughput (pps) | Embedded | 8641.1 | 8363.8 | −3.2%¹ |
+
+¹ End‑to‑end embedded numbers changed alongside profile defaults (Fixed=ON, Liquid FFT=OFF) and micro‑bench scope; use pinned, multi‑run medians for apples‑to‑apples.
+
+---
+
+## Quick Graphs
+
+```mermaid
+%% If your viewer supports Mermaid xychart-beta, a comparative bar chart:
+%% Fallback: see ASCII chart below.
+xychart-beta
+  title "Demod Time (µs/sym) — sf7/os8"
+  x-axis ["CFO=0 (emb)", "CFO=100 (emb)"]
+  y-axis "µs" 0 --> 35
+  bar "Baseline" [31.00, 31.29]
+  bar "Current"  [10.25, 21.84]
+```
+
+```mermaid
+pie title Whitening Throughput (MB/s)
+  "Host – Baseline 309"   : 309
+  "Host – Current 314"    : 314
+  "Embedded – Baseline 308": 308
+  "Embedded – Current 312" : 312
+```
+
+ASCII fallback (demod time, lower is better):
+
+```
+CFO=0   | █████████████████████████████ (31.00)
+        | ██████████                    (10.25)
+
+CFO=100 | ██████████████████████████████ (31.29)
+        | ███████████████               (21.84)
+```
+
 ## Roadmap — Further Optimizations (Prioritized)
 
 - TX Q15 Path: generate chips directly in Q15 for fixed builds to remove float round-trips. Low risk, small–moderate gain.
