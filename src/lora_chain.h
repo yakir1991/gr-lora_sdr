@@ -5,6 +5,7 @@
 #include <complex.h>
 #include "lora_config.h"
 #include "lora_io.h"
+#include "lora_fft_demod.h"
 #ifdef LORA_LITE_FIXED_POINT
 #include "lora_fixed.h"
 #endif
@@ -41,6 +42,8 @@ typedef struct {
 #ifdef LORA_LITE_FIXED_POINT
     lora_q15_complex qchips[LORA_MAX_CHIPS];
 #endif
+    lora_fft_demod_ctx_t demod_ctx;
+    void *fft_ws;
 } lora_rx_workspace;
 
 /*
@@ -56,6 +59,10 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
                           size_t *restrict payload_len_out,
                           const lora_chain_cfg *cfg,
                           lora_rx_workspace *ws);
+
+lora_status lora_rx_chain_init(lora_rx_workspace *ws, uint8_t sf,
+                               uint32_t samp_rate, uint32_t bw);
+void lora_rx_chain_free(lora_rx_workspace *ws);
 
 lora_status lora_tx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);
 lora_status lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);

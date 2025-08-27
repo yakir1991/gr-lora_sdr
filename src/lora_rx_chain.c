@@ -52,22 +52,10 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
     const float complex *chip_ptr = chips;
 #endif
 
-    size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
-    if (ws_bytes == 0)
-        return LORA_ERR_UNSUPPORTED;
-    void *fft_ws = aligned_alloc(32, ws_bytes);
-    if (!fft_ws)
-        return LORA_ERR_OOM;
-    lora_fft_demod_ctx_t ctx;
-    if (lora_fft_demod_init(&ctx, sf, samp_rate, bw, fft_ws, ws_bytes) != 0) {
-        free(fft_ws);
-        return LORA_ERR_IO;
-    }
-    ctx.cfo = 0.0f;
-    ctx.cfo_phase = 0.0;
-    lora_fft_demod(&ctx, chip_ptr, nsym, symbols);
-    lora_fft_demod_free(&ctx);
-    free(fft_ws);
+    lora_fft_demod_ctx_t *ctx = &ws->demod_ctx;
+    if (!ws->fft_ws)
+        return LORA_ERR_INVALID_ARG;
+    lora_fft_demod(ctx, chip_ptr, nsym, symbols);
 
     uint8_t *whitened = ws->whitened;
     for (size_t i = 0; i < nsym; ++i)
@@ -98,6 +86,35 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
     memcpy(payload, payload_crc, payload_len);
     *payload_len_out = payload_len;
     return LORA_OK;
+}
+
+lora_status lora_rx_chain_init(lora_rx_workspace *ws, uint8_t sf,
+                               uint32_t samp_rate, uint32_t bw) {
+    if (!ws)
+        return LORA_ERR_INVALID_ARG;
+    size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
+    if (ws_bytes == 0)
+        return LORA_ERR_UNSUPPORTED;
+    ws->fft_ws = aligned_alloc(32, ws_bytes);
+    if (!ws->fft_ws)
+        return LORA_ERR_OOM;
+    if (lora_fft_demod_init(&ws->demod_ctx, sf, samp_rate, bw, ws->fft_ws,
+                             ws_bytes) != 0) {
+        free(ws->fft_ws);
+        ws->fft_ws = NULL;
+        return LORA_ERR_IO;
+    }
+    ws->demod_ctx.cfo = 0.0f;
+    ws->demod_ctx.cfo_phase = 0.0;
+    return LORA_OK;
+}
+
+void lora_rx_chain_free(lora_rx_workspace *ws) {
+    if (!ws || !ws->fft_ws)
+        return;
+    lora_fft_demod_free(&ws->demod_ctx);
+    free(ws->fft_ws);
+    ws->fft_ws = NULL;
 }
 
 lora_status lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg)

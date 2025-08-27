@@ -65,6 +65,8 @@ int main(int argc, char **argv)
 
     size_t peak_bytes = 0;
     uint64_t start = now_ns();
+    if (lora_rx_chain_init(&rx_ws, cfg.sf, cfg.samp_rate, cfg.bw) != LORA_OK)
+        return EXIT_FAILURE;
     for (int i = 0; i < ITERATIONS; ++i)
     {
         size_t nchips = 0, out_len = 0;
@@ -117,6 +119,7 @@ int main(int argc, char **argv)
     double pps = (double)ITERATIONS * 1e9 / (double)cycles;
     fprintf(csv, "%llu,%zu,%.3f\n", (unsigned long long)cycles, peak_bytes, pps);
     fclose(csv);
+    lora_rx_chain_free(&rx_ws);
 
     printf("cycles=%llu, peak_bytes=%zu, packets_per_sec=%.3f\n",
            (unsigned long long)cycles, peak_bytes, pps);
