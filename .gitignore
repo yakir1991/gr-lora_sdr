@@ -30,6 +30,17 @@ power_out/
 
 # Common bench artifacts
 bench_results.csv
+# Any ad-hoc bench CSVs at repo root
+/bench_*.csv
+
+# Root-level scratch binaries produced during local experiments
+/out_*.bin
+
+# Generic local logs and dumps
+*.log
+*.tmp
+core
+core.*
 
 # Profilers (best-effort)
 results/profile_*.txt
