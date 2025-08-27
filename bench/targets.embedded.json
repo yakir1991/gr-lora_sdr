@@ -1,5 +1,5 @@
 {
   "min_pps_off": 9500.0,
-  "min_pps_on":  10900.0,
-  "min_ratio_on_over_off": 1.12
+  "min_pps_on":  9900.0,
+  "min_ratio_on_over_off": 1.01
 }
