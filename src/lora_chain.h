@@ -41,6 +41,14 @@ typedef struct {
 #ifdef LORA_LITE_FIXED_POINT
     lora_q15_complex qchips[LORA_MAX_CHIPS];
 #endif
+    /* Persistent FFT demod workspace/context for embedded reuse */
+    void *fft_ws;
+    size_t fft_ws_size;
+    uint8_t fft_sf;
+    uint32_t fft_fs;
+    uint32_t fft_bw;
+    /* Persistent demodulator context (opaque pointer to avoid heavy includes) */
+    struct lora_fft_demod_ctx *fft_ctx;
 } lora_rx_workspace;
 
 /*
@@ -59,4 +67,3 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
 
 lora_status lora_tx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);
 lora_status lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);
-

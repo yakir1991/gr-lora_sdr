@@ -18,6 +18,12 @@ static inline unsigned char *align_ptr(unsigned char *p, size_t a) {
   return (unsigned char *)v;
 }
 
+static inline int16_t sat16(int32_t x) {
+  if (x > 32767) return 32767;
+  if (x < -32768) return -32768;
+  return (int16_t)x;
+}
+
 size_t lora_fft_workspace_bytes(uint8_t sf, uint32_t fs, uint32_t bw) {
   uint32_t rem = fs % bw;
   if (rem) {
@@ -39,8 +45,14 @@ size_t lora_fft_workspace_bytes(uint8_t sf, uint32_t fs, uint32_t bw) {
   total = align_up(total, align);
   total += n_bins * sizeof(float complex); /* FFT output */
   total = align_up(total, align);
-  total += sps * sizeof(float complex); /* downchirp */
+  total += sps * sizeof(float complex); /* downchirp (float) */
   total = align_up(total, align);
+#ifdef LORA_LITE_FIXED_POINT
+  total += sps * sizeof(lora_q15_complex); /* downchirp (q15) */
+  total = align_up(total, align);
+  total += n_bins * sizeof(lora_q15_complex); /* bins_q15 */
+  total = align_up(total, align);
+#endif
   return total;
 }
 
@@ -93,11 +105,33 @@ int lora_fft_demod_init(lora_fft_demod_ctx_t *ctx, uint8_t sf, uint32_t fs,
   ctx->downchirp = (float complex *)p;
   p += sps * sizeof(float complex);
 
+#ifdef LORA_LITE_FIXED_POINT
+  p = align_ptr(p, align);
+  ctx->downchirp_q15 = (lora_q15_complex *)p;
+  p += sps * sizeof(lora_q15_complex);
+  p = align_ptr(p, align);
+  ctx->bins_q15 = (lora_q15_complex *)p;
+  p += n_bins * sizeof(lora_q15_complex);
+#endif
+
   if (lora_fft_init(&ctx->fft, n_bins, ctx->fft.work, ctx->fft.tw, 0) != 0)
     return -1;
 
   float complex upchirp[sps];
   lora_build_ref_chirps(upchirp, ctx->downchirp, sf, os_factor);
+
+#ifdef LORA_LITE_FIXED_POINT
+  /* Quantize downchirp to Q15 once to avoid per-symbol q15->float conversion */
+  const float scale = 32767.0f;
+  for (uint32_t n = 0; n < sps; ++n) {
+    float re = crealf(ctx->downchirp[n]);
+    float im = cimagf(ctx->downchirp[n]);
+    int16_t qr = (int16_t)(re * scale + (re >= 0 ? 0.5f : -0.5f));
+    int16_t qi = (int16_t)(im * scale + (im >= 0 ? 0.5f : -0.5f));
+    ctx->downchirp_q15[n].r = qr;
+    ctx->downchirp_q15[n].i = qi;
+  }
+#endif
 
   ctx->cfo = 0.0f;
   ctx->cfo_phase = 0.0;
@@ -157,14 +191,36 @@ void lora_fft_demod(lora_fft_demod_ctx_t *ctx,
     for (size_t s = 0; s < nsym; ++s) {
 #ifdef LORA_LITE_FIXED_POINT
       const lora_q15_complex *restrict symchips = chips + s * sps;
-      q15_to_cf(tmp, symchips, sps);
-      const float complex *restrict sc = tmp;
+      /* Fixed-point fast path: accumulate in Q15 per FFT bin, then convert n_bins only */
+      for (uint32_t b = 0; b < n_bins; ++b) {
+        int32_t acc_r = 0, acc_i = 0;
+        uint32_t n = b * os_factor;
+        for (uint32_t k = 0; k < os_factor; ++k, ++n) {
+          /* acc += symchips[n] * downchirp_q15[n]; */
+          lora_q15_complex prod;
+          /* inline multiply to keep dependency on lora_fixed minimal */
+          int32_t ar = symchips[n].r;
+          int32_t ai = symchips[n].i;
+          int32_t br = ctx->downchirp_q15[n].r;
+          int32_t bi = ctx->downchirp_q15[n].i;
+          int32_t pr = (ar * br - ai * bi) >> 15;
+          int32_t pi = (ar * bi + ai * br) >> 15;
+          prod.r = (int16_t)pr;
+          prod.i = (int16_t)pi;
+          acc_r += prod.r;
+          acc_i += prod.i;
+        }
+        ctx->bins_q15[b].r = sat16(acc_r);
+        ctx->bins_q15[b].i = sat16(acc_i);
+      }
+      /* Convert only n_bins complex values to float for FFT input */
+      q15_to_cf(fft_in, ctx->bins_q15, n_bins);
 #else
       const float complex *restrict sc = chips + s * sps;
-#endif
       /* No CFO: helper skips phase rotation. */
       dechirp_and_accumulate(sc, downchirp, n_bins, os_factor, fft_in, 0, NULL,
                              0.0f);
+#endif
       lora_fft_exec_fwd(&ctx->fft, fft_in, fft_out);
       float max_mag = 0.0f;
       uint32_t max_idx = 0;
@@ -188,14 +244,43 @@ void lora_fft_demod(lora_fft_demod_ctx_t *ctx,
   for (size_t s = 0; s < nsym; ++s) {
 #ifdef LORA_LITE_FIXED_POINT
     const lora_q15_complex *restrict symchips = chips + s * sps;
-    q15_to_cf(tmp, symchips, sps);
-    const float complex *restrict sc = tmp;
+    /* Fixed-point CFO path: dechirp and CFO-rotate in Q15, accumulate per-bin.
+       Keep phase continuous across all samples in the symbol. */
+    float complex ph = phase;
+    for (uint32_t b = 0; b < n_bins; ++b) {
+      int32_t acc_r = 0, acc_i = 0;
+      uint32_t n = b * os_factor;
+      for (uint32_t k = 0; k < os_factor; ++k, ++n) {
+        /* Compute phasor in Q15 for this sample */
+        float pr = crealf(ph), pi = cimagf(ph);
+        int16_t qpr = (int16_t)(pr * 32767.0f + (pr >= 0 ? 0.5f : -0.5f));
+        int16_t qpi = (int16_t)(pi * 32767.0f + (pi >= 0 ? 0.5f : -0.5f));
+        /* tmp = sym[n] * down[n] */
+        int32_t ar = symchips[n].r, ai = symchips[n].i;
+        int32_t br = ctx->downchirp_q15[n].r, bi = ctx->downchirp_q15[n].i;
+        int32_t tr = (ar * br - ai * bi) >> 15;
+        int32_t ti = (ar * bi + ai * br) >> 15;
+        /* apply CFO: tmp *= phasor */
+        int32_t cr = (tr * qpr - ti * qpi) >> 15;
+        int32_t ci = (tr * qpi + ti * qpr) >> 15;
+        acc_r += cr;
+        acc_i += ci;
+        ph *= step;
+      }
+      ctx->bins_q15[b].r = sat16(acc_r);
+      ctx->bins_q15[b].i = sat16(acc_i);
+    }
+    /* Convert accumulated bins to float for FFT */
+    q15_to_cf(fft_in, ctx->bins_q15, n_bins);
+    /* Advance global phase to end-of-symbol */
+    phase = ph;
 #else
     const float complex *restrict sc = chips + s * sps;
 #endif
     /* CFO present: rotate each chip by the evolving phase. */
-    dechirp_and_accumulate(sc, downchirp, n_bins, os_factor, fft_in, 1, &phase,
-                           step);
+#ifndef LORA_LITE_FIXED_POINT
+    dechirp_and_accumulate(sc, downchirp, n_bins, os_factor, fft_in, 1, &phase, step);
+#endif
     lora_fft_exec_fwd(&ctx->fft, fft_in, fft_out);
     float max_mag = 0.0f;
     uint32_t max_idx = 0;

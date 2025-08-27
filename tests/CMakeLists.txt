@@ -202,3 +202,77 @@ target_compile_definitions(bench_lora_chain PRIVATE LORA_LITE_ENABLE_LOGGING=0 $
 target_compile_options(bench_lora_chain PRIVATE -O3 -DNDEBUG)
 add_test(NAME bench_lora_chain COMMAND bench_lora_chain bench_results.csv)
 set_tests_properties(bench_lora_chain PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# Micro-benchmark: FFT demod (float and fixed variants)
+add_executable(bench_demod benchmarks/bench_demod.c)
+target_link_libraries(bench_demod PRIVATE lora_fft_demod)
+target_compile_definitions(bench_demod PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+target_compile_options(bench_demod PRIVATE -O3 -DNDEBUG)
+add_test(NAME bench_demod COMMAND bench_demod)
+
+add_executable(bench_demod_fixed benchmarks/bench_demod.c)
+target_link_libraries(bench_demod_fixed PRIVATE lora_fft_demod)
+target_compile_definitions(bench_demod_fixed PRIVATE LORA_LITE_ENABLE_LOGGING=0 LORA_LITE_FIXED_POINT)
+target_compile_options(bench_demod_fixed PRIVATE -O3 -DNDEBUG)
+add_test(NAME bench_demod_fixed COMMAND bench_demod_fixed)
+
+# Correctness: minimal FFT demod sanity
+add_executable(test_fft_demod_correctness test_fft_demod_correctness.c)
+target_link_libraries(test_fft_demod_correctness PRIVATE lora_fft_demod)
+target_compile_definitions(test_fft_demod_correctness PRIVATE LORA_LITE_ENABLE_LOGGING=1 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+add_test(NAME test_fft_demod_correctness COMMAND test_fft_demod_correctness)
+
+# Micro-benchmark: Whitening throughput
+add_executable(bench_whitening benchmarks/bench_whitening.c)
+target_link_libraries(bench_whitening PRIVATE lora_whitening)
+target_compile_definitions(bench_whitening PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+target_compile_options(bench_whitening PRIVATE -O3 -DNDEBUG)
+add_test(NAME bench_whitening COMMAND bench_whitening)
+
+# Micro-benchmark: Demod with CFO
+add_executable(bench_demod_cfo benchmarks/bench_demod_cfo.c)
+target_link_libraries(bench_demod_cfo PRIVATE lora_fft_demod)
+target_compile_definitions(bench_demod_cfo PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+target_compile_options(bench_demod_cfo PRIVATE -O3 -DNDEBUG)
+add_test(NAME bench_demod_cfo COMMAND bench_demod_cfo)
+
+# Micro-benchmark: Interleaver
+add_executable(bench_interleaver benchmarks/bench_interleaver.c)
+target_link_libraries(bench_interleaver PRIVATE lora_interleaver)
+target_compile_definitions(bench_interleaver PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+target_compile_options(bench_interleaver PRIVATE -O3 -DNDEBUG)
+add_test(NAME bench_interleaver COMMAND bench_interleaver)
+
+# Micro-benchmark: CRC
+add_executable(bench_crc benchmarks/bench_crc.c)
+target_link_libraries(bench_crc PRIVATE lora_add_crc)
+target_compile_definitions(bench_crc PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+target_compile_options(bench_crc PRIVATE -O3 -DNDEBUG)
+add_test(NAME bench_crc COMMAND bench_crc)
+
+# Micro-benchmark: Modulation (upchirp generation)
+add_executable(bench_mod benchmarks/bench_mod.c)
+target_link_libraries(bench_mod PRIVATE lora_mod)
+target_compile_definitions(bench_mod PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+target_compile_options(bench_mod PRIVATE -O3 -DNDEBUG)
+add_test(NAME bench_mod COMMAND bench_mod)
+
+# Micro-benchmark: FFT (all SFs)
+add_executable(bench_fft benchmarks/bench_fft.c)
+target_link_libraries(bench_fft PRIVATE lora_fft)
+target_compile_definitions(bench_fft PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+target_compile_options(bench_fft PRIVATE -O3 -DNDEBUG)
+add_test(NAME bench_fft COMMAND bench_fft)
+
+# End-to-end embedded throughput guard (optional)
+add_test(NAME pps_guard COMMAND /usr/bin/env python3 ${CMAKE_CURRENT_SOURCE_DIR}/pps_guard.py)
+set_tests_properties(pps_guard PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+# Micro-benchmark: q15_to_cf conversion
+if(LORA_LITE_FIXED_POINT)
+  add_executable(bench_q15_to_cf benchmarks/bench_q15_to_cf.c)
+  target_link_libraries(bench_q15_to_cf PRIVATE lora_fft)
+  target_compile_definitions(bench_q15_to_cf PRIVATE LORA_LITE_ENABLE_LOGGING=0 LORA_LITE_FIXED_POINT)
+  target_compile_options(bench_q15_to_cf PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_q15_to_cf COMMAND bench_q15_to_cf)
+endif()

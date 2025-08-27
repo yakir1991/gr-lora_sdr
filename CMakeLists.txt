@@ -82,6 +82,11 @@ if(LORA_LITE_USE_LIQUID_FFT OR LORA_LITE_FIXED_POINT)
   endif()
 endif()
 
+# Warn about a known slow combo on embedded: fixed-point with Liquid FFT
+if(LORA_LITE_FIXED_POINT AND LORA_LITE_USE_LIQUID_FFT)
+  message(WARNING "LORA_LITE_FIXED_POINT=ON with LORA_LITE_USE_LIQUID_FFT=ON is usually slower on embedded; consider turning Liquid FFT OFF for fixed/Q15 builds.")
+endif()
+
 # Enable testing via CTest
 include(CTest)
 enable_testing()

@@ -70,6 +70,10 @@ if(LORA_LITE_USE_LIQUID_FFT)
 endif()
 
 add_library(lora_fft_demod lora_fft_demod.c)
+if(LORA_LITE_FIXED_POINT)
+  # Link-time GC/LTO may drop q15_to_cf if it's only in lora_fft; include here too.
+  target_sources(lora_fft_demod PRIVATE q15_to_cf.c)
+endif()
 target_include_directories(lora_fft_demod PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>

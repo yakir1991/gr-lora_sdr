@@ -1,76 +1,44 @@
 #include "lora_interleaver.h"
 #include "lora_interleaver_tables.h"
 
-static void int_to_bits(uint32_t value, uint8_t *bits, uint8_t n_bits)
-{
-    for (uint8_t i = 0; i < n_bits; ++i) {
-        bits[n_bits - 1 - i] = (value >> i) & 1u;
-    }
-}
-
-static uint32_t bits_to_int(const uint8_t *bits, uint8_t n_bits)
-{
-    uint32_t val = 0;
-    for (uint8_t i = 0; i < n_bits; ++i) {
-        val = (val << 1) | (bits[i] & 1u);
-    }
-    return val;
-}
-
 void lora_interleave(const uint8_t *restrict in, uint32_t *restrict out,
                      uint8_t sf, uint8_t sf_app, uint8_t cw_len,
                      bool add_parity)
 {
-    uint8_t cw_bin[sf_app][cw_len];
-    for (uint8_t i = 0; i < sf_app; ++i) {
-        int_to_bits(in[i], cw_bin[i], cw_len);
-    }
-
-    uint8_t inter_bin[cw_len][sf];
-    const uint8_t (*perm)[12] =
-        LORA_INTERLEAVE_PERM[sf - 7][sf_app - 1];
+    const uint8_t (*perm)[12] = LORA_INTERLEAVE_PERM[sf - 7][sf_app - 1];
     for (uint8_t i = 0; i < cw_len; ++i) {
-        for (uint8_t j = 0; j < sf_app; ++j) {
-            uint8_t idx = perm[i][j];
-            inter_bin[i][j] = cw_bin[idx][i];
+        uint32_t sym = 0;
+        uint8_t parity = 0;
+        for (uint8_t j = 0; j < sf; ++j) {
+            uint8_t b;
+            if (j < sf_app) {
+                uint8_t idx = perm[i][j];
+                b = (uint8_t)((in[idx] >> (cw_len - 1u - i)) & 1u);
+                parity ^= b;
+            } else if (add_parity && j == sf_app) {
+                b = parity;
+            } else {
+                b = 0u;
+            }
+            sym = (sym << 1) | (uint32_t)b;
         }
-        for (uint8_t j = sf_app; j < sf; ++j) {
-            inter_bin[i][j] = 0;
-        }
-        if (add_parity && sf_app < sf) {
-            uint8_t parity = 0;
-            for (uint8_t j = 0; j < sf_app; ++j)
-                parity ^= inter_bin[i][j];
-            inter_bin[i][sf_app] = parity;
-        }
-        out[i] = bits_to_int(inter_bin[i], sf);
+        out[i] = sym;
     }
 }
 
 void lora_deinterleave(const uint32_t *in, uint8_t *out,
                        uint8_t sf, uint8_t sf_app, uint8_t cw_len)
 {
-    uint8_t inter_bin[cw_len][sf];
+    const uint8_t (*perm)[12] = LORA_INTERLEAVE_PERM[sf - 7][sf_app - 1];
+    /* Accumulate codewords directly, MSB-first across i */
+    for (uint8_t k = 0; k < sf_app; ++k) out[k] = 0u;
     for (uint8_t i = 0; i < cw_len; ++i) {
-        int_to_bits(in[i], inter_bin[i], sf);
-    }
-
-    uint8_t deinter_bin[sf_app][cw_len];
-    for (uint8_t i = 0; i < sf_app; ++i)
-        for (uint8_t j = 0; j < cw_len; ++j)
-            deinter_bin[i][j] = 0;
-
-    const uint8_t (*perm)[12] =
-        LORA_INTERLEAVE_PERM[sf - 7][sf_app - 1];
-    for (uint8_t i = 0; i < cw_len; ++i) {
-        for (uint8_t j = 0; j < sf_app; ++j) {
+        uint32_t sym = in[i];
+        for (uint8_t j = 0; j < sf; ++j) {
+            if (j >= sf_app) break; /* ignore padding/parity columns here */
+            uint8_t b = (uint8_t)((sym >> (sf - 1u - j)) & 1u);
             uint8_t idx = perm[i][j];
-            deinter_bin[idx][i] = inter_bin[i][j];
+            out[idx] = (uint8_t)((out[idx] << 1) | b);
         }
     }
-
-    for (uint8_t i = 0; i < sf_app; ++i) {
-        out[i] = (uint8_t)bits_to_int(deinter_bin[i], cw_len);
-    }
 }
-

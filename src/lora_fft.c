@@ -67,14 +67,36 @@ void lora_fft_exec_fwd(const lora_fft_ctx_t *ctx,
 #endif
     }
 
-    memcpy(ctx->work, in, n * sizeof(float complex));
-    bit_reverse(ctx->work, n);
+    /* Copy input into work in bit-reversed order to avoid a separate pass */
+    unsigned log2n = 0; while ((1u << log2n) < n) ++log2n;
+    for (unsigned i = 0; i < n; ++i) {
+        unsigned x = i, r = 0;
+        for (unsigned b = 0; b < log2n; ++b) { r = (r << 1) | (x & 1u); x >>= 1; }
+        ctx->work[r] = in[i];
+    }
+
     unsigned step = 1;
     while (step < n) {
         unsigned jump = step << 1;
         unsigned tw_step = n / jump;
         for (unsigned i = 0; i < n; i += jump) {
-            for (unsigned k = 0; k < step; ++k) {
+            /* small unroll by 2 for inner butterflies when possible */
+            unsigned k = 0;
+            for (; k + 1 < step; k += 2) {
+                float complex w0 = ctx->tw[(k + 0) * tw_step];
+                float complex w1 = ctx->tw[(k + 1) * tw_step];
+                float complex a0 = ctx->work[i + k + 0];
+                float complex a1 = ctx->work[i + k + step + 0];
+                float complex b0 = ctx->work[i + k + 1];
+                float complex b1 = ctx->work[i + k + step + 1];
+                float complex t0 = a1 * w0;
+                float complex t1 = b1 * w1;
+                ctx->work[i + k + 0]       = a0 + t0;
+                ctx->work[i + k + step + 0] = a0 - t0;
+                ctx->work[i + k + 1]       = b0 + t1;
+                ctx->work[i + k + step + 1] = b0 - t1;
+            }
+            for (; k < step; ++k) {
                 float complex t = ctx->work[i + k + step] * ctx->tw[k * tw_step];
                 float complex u = ctx->work[i + k];
                 ctx->work[i + k] = u + t;
@@ -85,4 +107,3 @@ void lora_fft_exec_fwd(const lora_fft_ctx_t *ctx,
     }
     memcpy(out, ctx->work, n * sizeof(float complex));
 }
-

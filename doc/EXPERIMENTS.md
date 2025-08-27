@@ -95,6 +95,78 @@ sed -n '1,200p' "$LATEST_SUM_DIR/SUMMARY.md"
 
 ---
 
+### F) FFT Demod Block — correctness + micro-bench
+
+- Correctness: `test_fft_demod_correctness` passes on both host and embedded builds (symbol 0 recovered for ideal upchirps).
+- Micro-benchmark (`bench_demod`, sf7/os8, nsym=128):
+  - Host (Release): float 14.551 µs/sym; fixed 30.203 µs/sym.
+  - Embedded profile (after Q15 fast-path): float ≈9.61 µs/sym; fixed ≈10.25 µs/sym.
+- Workspace: 12,288 B → 16,896 B (added Q15 downchirp + bins).
+
+Notes:
+- Q15 fast-path (CFO=0): accumulates in Q15 per bin, converts only `n_bins` to float for FFT (previously converted `sps`).
+- In embedded profile this roughly halves the demod time for CFO=0; memory increases by ~4.5 KB.
+- LTO/GC-sections: added `q15_to_cf.c` to `lora_fft_demod` to avoid missing symbol.
+
+Next up: consider precomputing a Q15 downchirp table to avoid per-symbol conversion in the fixed path and measure impact.
+
+---
+
+### G) Whitening — throughput micro-bench
+
+- Impl: removed modulo per-byte; process in chunks bounded by whitening period (255), avoiding `%` in hot loop. Added 64-bit XOR within each chunk.
+- Micro-benchmark (`bench_whitening`, 8 KB buffer, 2000 iters):
+  - Host: ~314 MB/s
+  - Embedded profile: ~312 MB/s
+
+Notes: whitening is now memory-bandwidth bound; further gains likely require vector intrinsics (e.g., NEON/SSE) which we can add per-arch later.
+
+---
+
+### H) CRC — table-driven implementation + bench
+
+- Impl: replaced per-bit loop with table-driven CRC-16-CCITT (poly 0x1021, init 0x0000), preserving legacy post-XOR and nibble extraction.
+- Correctness: existing `test_lora_add_crc` passes (host + embedded).
+- Micro-benchmark (`bench_crc`, 512 B payload, 200k iters):
+  - Host: ~64.8 MB/s
+  - Embedded profile: ~64.9 MB/s
+
+Notes: current CRC throughput is adequate relative to overall chain cost; further gains possible with prefetching or unrolling, but not currently a bottleneck.
+
+---
+
+### I) FFT Demod — CFO path (Q15) micro-bench
+
+- Impl: CFO compensation now runs in Q15 as well (per-sample Q15 phasor), keeping the fixed-point fast-path when CFO ≠ 0.
+- Micro-benchmark (`bench_demod_cfo`, cfo=100 Hz, sf7/os8, nsym=128):
+  - Host (Release): ≈30.57 µs/sym (ok=1)
+  - Embedded: ≈21.84 µs/sym (ok=1)
+
+Notes: accumulation switched to 32-bit with saturating store to avoid Q15 overflow; phase continuity fixed across bins. CFO correctness verified by rotating input chips and recovering symbol 0.
+
+---
+
+### J) Modulation — upchirp recurrence
+
+- Impl: replaced per-sample `cexpf` in `lora_build_upchirp` with a second-order recurrence using a complex step (`r`) and constant step-of-step (`step_r`), with a single adjustment at the fold.
+- Micro-benchmark (`bench_mod`, sf7/os8, nsym=2048):
+  - Host: ≈30.70 µs/sym
+  - Embedded: ≈30.85 µs/sym
+
+Notes: this eliminates thousands of `cexpf` calls per packet; remaining cost is simple complex multiplies. Numbers shown are single-run; for rigorous comparison, pin a core and take medians across runs.
+
+---
+
+### K) Internal FFT — bitrev copy + small unroll
+
+- Impl: avoid a separate bit-reverse pass by copying input into the work buffer in bit-reversed order; add a tiny unroll (×2) in the butterfly inner loop.
+- Micro-benchmark (`bench_fft`, us per exec):
+  - Host: sf7 4.98 → 4.98, sf10 56.18 → 56.18 (within noise)
+  - Embedded: sf7 ≈4.70, sf10 ≈53.21
+
+Notes: For these sizes the wins are modest and within run-to-run variance; however, the change reduces memory traffic and scales better as `n` grows. Further gains would come from stage-wise twiddle layout and SIMD. Keeping changes minimal for stability.
+
+
 ## Conclusions
 
 1. **Embedded default = Fixed + FFT=OFF.**  
@@ -143,3 +215,22 @@ sed -n '1,200p' "$LATEST_SUM_DIR/SUMMARY.md"
 - [ ] (Optional) Prototype CMSIS-DSP backend on ARM.
 
 > Note: absolute numbers are host-specific; the *relative* trends (Fixed+OFF > Fixed+ON, Float: ON ≳ OFF) were consistent across our runs.
+
+---
+
+## Roadmap — Further Optimizations (Prioritized)
+
+- TX Q15 Path: generate chips directly in Q15 for fixed builds to remove float round-trips. Low risk, small–moderate gain.
+- CFO Phasor Fully Q15: keep the CFO phasor as Q1.15 and iterate via Q15 complex multiply (no per-sample float phasor). Moderate gain; tune precision.
+- Interleaver SIMD: 16B SSE2/NEON for bit moves and parity via popcount/LUT. Small gain; low risk.
+- FFT Algorithm: add radix-4 or split-radix for n divisible by 4; typically trims ~10–20% vs pure radix-2. Medium complexity.
+- Twiddle Layout: stage-wise twiddle blocks for better locality + slightly larger inner unrolls gated by size. Small–moderate gain.
+- Memory/Layout: precompute bit-reversal indices for common sizes; ensure 64B alignment on large buffers; apply `restrict` consistently. Small gain.
+- ARM Backend: prototype CMSIS-DSP FFT (`arm_cfft_q15`) for ARM targets; may deliver moderate–large wins on real hardware.
+- Frequency-Domain CFO: compensate CFO post-FFT (bin-wise phase slope) for small/slow CFOs. Scenario-dependent; validate accuracy.
+- Batch Symbols: dechirp multiple symbols then batched FFTs to improve locality; requires workspace planning. Small–moderate gain.
+- Toolchain: PGO builds and arch-specific flags (e.g., cortex/NEON, `-ffp-contract=fast`) to harvest additional percent-level gains.
+
+Guardrails and Benchmarks
+- Keep `pps_guard` in CI with profile-specific thresholds; record median over multiple runs.
+- When adding new paths (NEON/SSE/CMSIS), gate by CMake options and keep scalar fallbacks tested.

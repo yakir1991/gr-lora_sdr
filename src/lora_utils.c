@@ -22,20 +22,35 @@ __attribute__((constructor)) static void lora_whitening_seq_init(void) {
 
 void lora_build_upchirp(float complex *restrict chirp, uint32_t id, uint8_t sf,
                         uint32_t os_factor) {
-  double N = (double)(1u << sf);
-  uint32_t sps = (uint32_t)(N * os_factor);
-  int n_fold = (int)(sps - id * os_factor);
-  double inv_2Nos2 = 1.0 / (2.0 * N * os_factor * os_factor);
-  double inv_os = 1.0 / os_factor;
-  double id_over_N = (double)id / N;
-  double slope1 = (id_over_N - 0.5) * inv_os;
-  double slope2 = (id_over_N - 1.5) * inv_os;
-  const double k = 2.0 * M_PI;
-  for (uint32_t n = 0; n < sps; ++n) {
-    double n_d = (double)n;
-    double phase =
-        k * (n_d * n_d * inv_2Nos2 + n_d * ((int)n < n_fold ? slope1 : slope2));
-    chirp[n] = cexpf(I * (float)phase);
+  const double N = (double)(1u << sf);
+  const uint32_t sps = (uint32_t)(N * os_factor);
+  const int n_fold = (int)(sps - id * os_factor);
+  const double inv_N_os2 = 1.0 / (N * os_factor * os_factor);
+  const double id_over_N = (double)id / N;
+  const double slope1 = (id_over_N - 0.5) / (double)os_factor;
+  const double slope2 = (id_over_N - 1.5) / (double)os_factor;
+  const double k2pi = 2.0 * M_PI;
+
+  /* Recurrence for quadratic phase chirp:
+   *   chirp[n+1] = chirp[n] * r[n]
+   *   r[n+1] = r[n] * step_r
+   * where r[n] = exp(j*2π( (2n+1)/(2N os^2) + slope)), step_r = exp(j*2π*(1/(N os^2)))
+   * and slope switches from slope1 to slope2 at n == n_fold.
+   */
+  float complex curr = 1.0f + I * 0.0f; /* chirp[0] */
+  double inc0 = k2pi * (0.5 * inv_N_os2 + slope1);
+  float complex r = cexpf(I * (float)inc0);
+  float complex step_r = cexpf(I * (float)(k2pi * inv_N_os2));
+  float complex slope_step = cexpf(I * (float)(k2pi * (slope2 - slope1)));
+
+  for (uint32_t n = 0; n < (uint32_t)sps; ++n) {
+    chirp[n] = curr;
+    curr *= r;
+    r *= step_r;
+    if ((int)n + 1 == n_fold) {
+      /* Next r uses slope2 instead of slope1 */
+      r *= slope_step;
+    }
   }
 }
 

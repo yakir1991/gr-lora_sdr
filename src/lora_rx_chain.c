@@ -9,6 +9,9 @@
 #include "lora_fft_demod.h"
 #ifdef LORA_LITE_FIXED_POINT
 #include "lora_fixed.h"
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#endif
 #endif
 
 lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
@@ -32,21 +35,48 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
 
 #ifdef LORA_LITE_FIXED_POINT
     lora_q15_complex *qchips = ws->qchips;
+    size_t nlim = nchips < LORA_MAX_CHIPS ? nchips : LORA_MAX_CHIPS;
+
+    /* Convert float complex [-1,1) to Q15 interleaved pairs. NEON path when available. */
+    const float *fin = (const float *)chips; /* interleaved re,im */
+#if defined(__ARM_NEON)
+    const float32x4_t vmax = vdupq_n_f32(0.999969f);
+    const float32x4_t vmin = vdupq_n_f32(-1.0f);
+    const float32x4_t vscale = vdupq_n_f32(32767.0f);
+    size_t i = 0;
+    for (; i + 4 <= nlim; i += 4) {
+        /* load 4 complex = 8 floats */
+        float32x4x2_t deint = vld2q_f32(fin + i * 2);
+        float32x4_t re = vmaxq_f32(vminq_f32(deint.val[0], vmax), vmin);
+        float32x4_t im = vmaxq_f32(vminq_f32(deint.val[1], vmax), vmin);
+        int32x4_t re_i32 = vcvtq_s32_f32(vmulq_f32(re, vscale));
+        int32x4_t im_i32 = vcvtq_s32_f32(vmulq_f32(im, vscale));
+        int16x4_t re_i16 = vqmovn_s32(re_i32);
+        int16x4_t im_i16 = vqmovn_s32(im_i32);
+        int16x4x2_t inter;
+        inter.val[0] = re_i16;
+        inter.val[1] = im_i16;
+        vst2_s16((int16_t *)&qchips[i], inter);
+    }
+    for (; i < nlim; ++i) {
+        float re = fin[2*i+0];
+        float im = fin[2*i+1];
+        if (re > 0.999969f) re = 0.999969f; if (re < -1.0f) re = -1.0f;
+        if (im > 0.999969f) im = 0.999969f; if (im < -1.0f) im = -1.0f;
+        qchips[i].r = (int16_t)(re * 32767.0f + (re >= 0 ? 0.5f : -0.5f));
+        qchips[i].i = (int16_t)(im * 32767.0f + (im >= 0 ? 0.5f : -0.5f));
+    }
+#else
     const float q15_scale = 32767.0f;
-    for (size_t i = 0; i < nchips && i < LORA_MAX_CHIPS; ++i) {
-        float re = crealf(chips[i]);
-        if (re > 0.999969f)
-            re = 0.999969f;
-        if (re < -1.0f)
-            re = -1.0f;
-        float im = cimagf(chips[i]);
-        if (im > 0.999969f)
-            im = 0.999969f;
-        if (im < -1.0f)
-            im = -1.0f;
+    for (size_t i = 0; i < nlim; ++i) {
+        float re = fin[2*i+0];
+        if (re > 0.999969f) re = 0.999969f; if (re < -1.0f) re = -1.0f;
+        float im = fin[2*i+1];
+        if (im > 0.999969f) im = 0.999969f; if (im < -1.0f) im = -1.0f;
         qchips[i].r = (int16_t)(re * q15_scale + (re >= 0 ? 0.5f : -0.5f));
         qchips[i].i = (int16_t)(im * q15_scale + (im >= 0 ? 0.5f : -0.5f));
     }
+#endif
     const lora_q15_complex *chip_ptr = qchips;
 #else
     const float complex *chip_ptr = chips;
@@ -55,19 +85,34 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
     size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
     if (ws_bytes == 0)
         return LORA_ERR_UNSUPPORTED;
-    void *fft_ws = aligned_alloc(32, ws_bytes);
-    if (!fft_ws)
-        return LORA_ERR_OOM;
-    lora_fft_demod_ctx_t ctx;
-    if (lora_fft_demod_init(&ctx, sf, samp_rate, bw, fft_ws, ws_bytes) != 0) {
-        free(fft_ws);
-        return LORA_ERR_IO;
+    /* Reuse persistent FFT demod workspace/context in ws */
+    int need_reinit = 0;
+    if (!ws->fft_ws || ws->fft_ws_size != ws_bytes || ws->fft_sf != sf ||
+        ws->fft_fs != samp_rate || ws->fft_bw != bw) {
+        if (ws->fft_ws) free(ws->fft_ws);
+        ws->fft_ws = aligned_alloc(32, ws_bytes);
+        if (!ws->fft_ws)
+            return LORA_ERR_OOM;
+        ws->fft_ws_size = ws_bytes;
+        ws->fft_sf = sf;
+        ws->fft_fs = samp_rate;
+        ws->fft_bw = bw;
+        need_reinit = 1;
     }
-    ctx.cfo = 0.0f;
-    ctx.cfo_phase = 0.0;
-    lora_fft_demod(&ctx, chip_ptr, nsym, symbols);
-    lora_fft_demod_free(&ctx);
-    free(fft_ws);
+    if (need_reinit) {
+        if (ws->fft_ctx) {
+            lora_fft_demod_free(ws->fft_ctx);
+            free(ws->fft_ctx);
+        }
+        ws->fft_ctx = (void *)malloc(sizeof(*ws->fft_ctx));
+        if (!ws->fft_ctx)
+            return LORA_ERR_OOM;
+        if (lora_fft_demod_init(ws->fft_ctx, sf, samp_rate, bw, ws->fft_ws, ws_bytes) != 0)
+            return LORA_ERR_IO;
+        ws->fft_ctx->cfo = 0.0f;
+        ws->fft_ctx->cfo_phase = 0.0;
+    }
+    lora_fft_demod(ws->fft_ctx, chip_ptr, nsym, symbols);
 
     uint8_t *whitened = ws->whitened;
     for (size_t i = 0; i < nsym; ++i)
@@ -138,4 +183,3 @@ lora_status lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg
     free(payload);
     return (wr == payload_len) ? LORA_OK : LORA_ERR_IO;
 }
-

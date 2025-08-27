@@ -11,7 +11,7 @@
 /* Context for the FFT-based LoRa demodulator.  All state required for
  * processing is stored here so that runtime operation performs no dynamic
  * allocation. */
-typedef struct {
+typedef struct lora_fft_demod_ctx {
   uint8_t sf;         /* spreading factor */
   uint32_t fs;        /* sample rate */
   uint32_t bw;        /* signal bandwidth */
@@ -27,6 +27,10 @@ typedef struct {
   _Alignas(32) float complex *fft_in;    /* FFT input buffer */
   _Alignas(32) float complex *fft_out;   /* FFT output buffer */
   lora_fft_ctx_t fft;                    /* FFT context */
+#ifdef LORA_LITE_FIXED_POINT
+  _Alignas(32) lora_q15_complex *downchirp_q15; /* Q15 downchirp (for fixed path) */
+  _Alignas(32) lora_q15_complex *bins_q15;      /* Q15 accumulation buffer (n_bins) */
+#endif
 } lora_fft_demod_ctx_t;
 
 /* Return the number of bytes required for the workspace used by the
