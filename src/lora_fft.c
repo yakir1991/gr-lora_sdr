@@ -1,7 +1,7 @@
 #include "lora_fft.h"
 #include <math.h>
 #include <string.h>
-#ifdef LORA_LITE_USE_LIQUID_FFT
+#if LORA_LITE_USE_LIQUID_FFT
 #include <liquid/liquid.h>
 #endif
 
@@ -14,7 +14,7 @@ int lora_fft_init(lora_fft_ctx_t *ctx, unsigned n,
     ctx->tw = tw;
     ctx->use_liquid = use_liquid;
     ctx->liquid_plan = NULL;
-#ifdef LORA_LITE_USE_LIQUID_FFT
+#if LORA_LITE_USE_LIQUID_FFT
     if (use_liquid) {
         ctx->liquid_plan = fft_create_plan(n, work, work, LIQUID_FFT_FORWARD, 0);
         if (!ctx->liquid_plan)
@@ -29,7 +29,7 @@ int lora_fft_init(lora_fft_ctx_t *ctx, unsigned n,
 }
 
 void lora_fft_dispose(lora_fft_ctx_t *ctx) {
-#ifdef LORA_LITE_USE_LIQUID_FFT
+#if LORA_LITE_USE_LIQUID_FFT
     if (ctx && ctx->use_liquid && ctx->liquid_plan)
         fft_destroy_plan((fftplan)ctx->liquid_plan);
 #else
@@ -59,7 +59,7 @@ void lora_fft_exec_fwd(const lora_fft_ctx_t *ctx,
                        float complex *restrict out) {
     unsigned n = ctx->n;
     if (ctx->use_liquid && ctx->liquid_plan) {
-#ifdef LORA_LITE_USE_LIQUID_FFT
+#if LORA_LITE_USE_LIQUID_FFT
         memcpy(ctx->work, in, n * sizeof(float complex));
         fft_execute((fftplan)ctx->liquid_plan);
         memcpy(out, ctx->work, n * sizeof(float complex));

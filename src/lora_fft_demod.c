@@ -93,7 +93,7 @@ int lora_fft_demod_init(lora_fft_demod_ctx_t *ctx, uint8_t sf, uint32_t fs,
   ctx->downchirp = (float complex *)p;
   p += sps * sizeof(float complex);
 
-  if (lora_fft_init(&ctx->fft, n_bins, ctx->fft.work, ctx->fft.tw, 0) != 0)
+  if (lora_fft_init(&ctx->fft, n_bins, ctx->fft.work, ctx->fft.tw, 1) != 0)
     return -1;
 
   float complex upchirp[sps];

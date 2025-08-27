@@ -6,8 +6,14 @@ function(lora_add_test NAME)
 
   add_executable(${NAME} ${LT_SOURCES})
   target_link_libraries(${NAME} PRIVATE ${LT_LIBS})
+  if(LORA_LITE_USE_LIQUID_FFT)
+    target_link_libraries(${NAME} PRIVATE Liquid::liquid)
+  endif()
   target_include_directories(${NAME} PRIVATE ${LT_INCLUDES})
-  target_compile_definitions(${NAME} PRIVATE ${LT_DEFINITIONS} LORA_LITE_ENABLE_LOGGING=1 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+  target_compile_definitions(${NAME} PRIVATE ${LT_DEFINITIONS}
+    LORA_LITE_ENABLE_LOGGING=1
+    $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>
+    LORA_LITE_USE_LIQUID_FFT=$<IF:$<BOOL:${LORA_LITE_USE_LIQUID_FFT}>,1,0>)
   add_test(NAME ${NAME} COMMAND ${NAME})
   if(LT_PASS_REGEX)
     set_tests_properties(${NAME} PROPERTIES PASS_REGULAR_EXPRESSION "${LT_PASS_REGEX}")
@@ -18,9 +24,15 @@ function(lora_add_test NAME)
 
   add_executable(${NAME}_nolog ${LT_SOURCES})
   target_link_libraries(${NAME}_nolog PRIVATE ${LT_LIBS})
+  if(LORA_LITE_USE_LIQUID_FFT)
+    target_link_libraries(${NAME}_nolog PRIVATE Liquid::liquid)
+  endif()
   target_include_directories(${NAME}_nolog PRIVATE ${LT_INCLUDES})
   target_compile_options(${NAME}_nolog PRIVATE -U LORA_LITE_ENABLE_LOGGING)
-  target_compile_definitions(${NAME}_nolog PRIVATE ${LT_DEFINITIONS} LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+  target_compile_definitions(${NAME}_nolog PRIVATE ${LT_DEFINITIONS}
+    LORA_LITE_ENABLE_LOGGING=0
+    $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>
+    LORA_LITE_USE_LIQUID_FFT=$<IF:$<BOOL:${LORA_LITE_USE_LIQUID_FFT}>,1,0>)
   add_test(NAME ${NAME}_nolog COMMAND ${NAME}_nolog)
   if(LT_WORKING_DIR)
     set_tests_properties(${NAME}_nolog PROPERTIES WORKING_DIRECTORY ${LT_WORKING_DIR})
