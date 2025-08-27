@@ -111,6 +111,27 @@ FFT=ON                        19234.872
 Ratio (ON/OFF)                  103.88%
 ```
 
+## Full Test & Bench Matrix
+
+Run the entire test suite and benchmark across multiple build
+configurations:
+
+```bash
+./scripts/full_test_matrix.sh
+```
+
+Include fixed-point variants:
+
+```bash
+INCLUDE_FIXED=1 ./scripts/full_test_matrix.sh
+```
+
+Use the embedded profile with static linking and size optimizations:
+
+```bash
+EMBED=1 ./scripts/full_test_matrix.sh
+```
+
 ## Profiling
 Collect performance counters and heap usage on the host:
 
