@@ -6,8 +6,12 @@
 #ifdef _WIN32
 #include <direct.h>
 #define getcwd _getcwd
+#define mkdir_p(path) _mkdir(path)
 #else
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#define mkdir_p(path) mkdir(path, 0777)
 #endif
 #include "lora_chain.h"
 #include "lora_fft_demod.h"
@@ -36,6 +40,8 @@ int main(void) {
     const float ber_thresh[] = {1.0f, 0.5f, 0.1f, 0.01f, 0.0f};
     const size_t npts = sizeof(snr_db) / sizeof(snr_db[0]);
 
+    // Ensure results directory exists (CI may not have it by default)
+    (void)mkdir_p("results");
     FILE *csv = fopen("results/ber_snr.csv", "w");
     if (!csv) {
         perror("results/ber_snr.csv");
@@ -172,4 +178,3 @@ int main(void) {
     printf("BER vs SNR test passed\n");
     return 0;
 }
-

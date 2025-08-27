@@ -149,10 +149,16 @@ lora_add_test(test_tx_rx_compare
   LIBS lora_io
   WORKING_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
-lora_add_test(test_full_chain_compare
-  SOURCES test_full_chain_compare.c
-  LIBS lora_io
-  WORKING_DIR ${CMAKE_SOURCE_DIR})
+# Only add full_chain_compare if reference files are available in the repo
+if(EXISTS "${CMAKE_SOURCE_DIR}/legacy_gr_lora_sdr/gnuradio_ref.bin" AND
+   EXISTS "${CMAKE_SOURCE_DIR}/legacy_gr_lora_sdr/framework_ref.bin")
+  lora_add_test(test_full_chain_compare
+    SOURCES test_full_chain_compare.c
+    LIBS lora_io
+    WORKING_DIR ${CMAKE_SOURCE_DIR})
+else()
+  message(STATUS "Skipping test_full_chain_compare: reference files not found")
+endif()
 
 lora_add_test(test_fixed_float_float
   SOURCES test_fixed_float_equiv.c ../src/lora_mod.c ../src/lora_fft_demod.c ../src/lora_utils.c ../src/lora_fft.c ../src/q15_to_cf.c
@@ -266,7 +272,9 @@ add_test(NAME bench_fft COMMAND bench_fft)
 
 # End-to-end embedded throughput guard (optional)
 add_test(NAME pps_guard COMMAND /usr/bin/env python3 ${CMAKE_CURRENT_SOURCE_DIR}/pps_guard.py)
-set_tests_properties(pps_guard PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties(pps_guard PROPERTIES
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  ENVIRONMENT "PPS_MIN=2000")
 
 # Micro-benchmark: q15_to_cf conversion
 if(LORA_LITE_FIXED_POINT)
