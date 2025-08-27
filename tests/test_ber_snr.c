@@ -70,6 +70,12 @@ int main(void) {
         return EXIT_FAILURE;
     }
 
+    if (lora_rx_chain_init(&rx_ws, cfg.sf, cfg.samp_rate, cfg.bw) != LORA_OK) {
+        free(chips);
+        fclose(csv);
+        return EXIT_FAILURE;
+    }
+
     int fail = 0;
     uint32_t rng = 12345u;
     uint32_t sps = (1u << cfg.sf) * (cfg.samp_rate / cfg.bw);
@@ -78,6 +84,7 @@ int main(void) {
     void *ws = aligned_alloc(32, ws_bytes);
     if (!ws) {
         fprintf(stderr, "malloc failed\n");
+        lora_rx_chain_free(&rx_ws);
         free(chips);
         fclose(csv);
         return EXIT_FAILURE;
@@ -85,6 +92,7 @@ int main(void) {
     lora_fft_demod_ctx_t ctx;
     if (lora_fft_demod_init(&ctx, cfg.sf, cfg.samp_rate, cfg.bw, ws, ws_bytes) != 0) {
         fprintf(stderr, "init failed\n");
+        lora_rx_chain_free(&rx_ws);
         free(ws);
         free(chips);
         fclose(csv);
@@ -98,6 +106,7 @@ int main(void) {
         if (!noisy) {
             fprintf(stderr, "malloc failed\n");
             fclose(csv);
+            lora_rx_chain_free(&rx_ws);
             free(chips);
             return EXIT_FAILURE;
         }
@@ -116,6 +125,7 @@ int main(void) {
                     "Iteration %zu: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",
                     i, (int)rx_ret, nchips, tmp_len);
             free(noisy);
+            lora_rx_chain_free(&rx_ws);
             free(chips);
             fclose(csv);
             return EXIT_FAILURE;
@@ -130,6 +140,7 @@ int main(void) {
         if (!noisy_q) {
             fprintf(stderr, "malloc failed\n");
             free(noisy);
+            lora_rx_chain_free(&rx_ws);
             free(chips);
             fclose(csv);
             return EXIT_FAILURE;
@@ -162,6 +173,7 @@ int main(void) {
 
     lora_fft_demod_free(&ctx);
     free(ws);
+    lora_rx_chain_free(&rx_ws);
     free(chips);
     fclose(csv);
 

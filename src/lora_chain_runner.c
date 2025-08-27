@@ -79,8 +79,13 @@ int main(int argc, char **argv) {
     static uint8_t out_payload[LORA_MAX_PAYLOAD_LEN];
     static lora_rx_workspace rx_ws;
     size_t out_len;
-    if (lora_rx_chain(chips, nchips, out_payload, sizeof(out_payload), &out_len, &cfg, &rx_ws) != LORA_OK)
+    if (lora_rx_chain_init(&rx_ws, cfg.sf, cfg.samp_rate, cfg.bw) != LORA_OK)
         return 1;
+    if (lora_rx_chain(chips, nchips, out_payload, sizeof(out_payload), &out_len, &cfg, &rx_ws) != LORA_OK) {
+        lora_rx_chain_free(&rx_ws);
+        return 1;
+    }
+    lora_rx_chain_free(&rx_ws);
 
     FILE *fo = fopen(out_path, "wb");
     if (!fo) {

@@ -93,12 +93,14 @@ target_link_libraries(hello_world PRIVATE signal_utils)
 add_library(lora_tx_chain lora_tx_chain.c)
 target_include_directories(lora_tx_chain PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/lora_lite>)
 target_link_libraries(lora_tx_chain PUBLIC lora_add_crc lora_whitening lora_mod m)
 
 add_library(lora_rx_chain lora_rx_chain.c)
 target_include_directories(lora_rx_chain PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/lora_lite>)
 target_link_libraries(lora_rx_chain PUBLIC lora_add_crc lora_whitening lora_fft_demod m)
 

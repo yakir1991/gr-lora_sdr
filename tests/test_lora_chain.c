@@ -24,7 +24,10 @@ int main(void)
     static uint8_t out[LORA_MAX_PAYLOAD_LEN];
     static lora_rx_workspace rx_ws;
     size_t out_len = 0;
+    if (lora_rx_chain_init(&rx_ws, cfg.sf, cfg.samp_rate, cfg.bw) != LORA_OK)
+        return EXIT_FAILURE;
     lora_status rx_ret = lora_rx_chain(chips, nchips, out, sizeof(out), &out_len, &cfg, &rx_ws);
+    lora_rx_chain_free(&rx_ws);
     if (rx_ret != LORA_OK) {
         fprintf(stderr,
                 "Iteration 0: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",

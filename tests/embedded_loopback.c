@@ -76,7 +76,10 @@ int main(void) {
             return EXIT_FAILURE;
         }
     }
+    if (lora_rx_chain_init(&rx_ws, cfg.sf, cfg.samp_rate, cfg.bw) != LORA_OK)
+        return EXIT_FAILURE;
     lora_status rx_ret = lora_rx_chain(chips, nchips, rx, sizeof(rx), &rx_len, &cfg, &rx_ws);
+    lora_rx_chain_free(&rx_ws);
     if (rx_ret != LORA_OK) {
         fprintf(stderr,
                 "Iteration 0: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",
