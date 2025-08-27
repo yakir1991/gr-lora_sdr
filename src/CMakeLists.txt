@@ -74,6 +74,7 @@ target_include_directories(lora_fft_demod PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/lora_lite>)
+# Ensure q15_to_cf resolves by linking to lora_fft
 target_link_libraries(lora_fft_demod PUBLIC lora_utils lora_fft m)
 
 add_library(lora_header lora_header.c)

@@ -21,6 +21,8 @@ cmake -S . -B build \
 ```
 Or set `PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig` if you do have a `.pc`.
 
+Historically, builds that omitted `lora_fft` from the link line produced runtime errors like `undefined symbol: q15_to_cf`. The library is now linked explicitly to avoid this issue.
+
 ### End-to-End file test
 ```bash
 ctest --test-dir build -R test_end_to_end_file --output-on-failure
