@@ -1,5 +1,45 @@
+# === Builds / CMake
 build*/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+install_manifest.txt
+# If you don't want to track it (many teams do keep it for tooling):
+# compile_commands.json
+
+# === Python caches
+__pycache__/
+*/__pycache__/*
 *.pyc
 *.pyo
+
+# === IDE / Editors
 .vscode/
-*/__pycache__/*
+.idea/
+.clangd/
+.cache/
+*.swp
+*.swo
+
+# === Bench & Results (local only)
+bench_out/
+results/
+power_out/
+
+# Common bench artifacts
+bench_results.csv
+
+# Profilers (best-effort)
+results/profile_*.txt
+bench_out/**/perf_*.txt
+bench_out/**/run_*.log
+bench_out/**/time_*.txt
+power_out/**/bench_stdout.log
+power_out/**/summary.csv
+power_out/**/energy.csv
+
+# === GNU Radio legacy artifacts
+legacy_gr_lora_sdr/gnuradio_ref.bin
+legacy_gr_lora_sdr/framework_ref.bin
