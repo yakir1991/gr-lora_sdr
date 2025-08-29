@@ -88,40 +88,39 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
     size_t ws_bytes = lora_fft_workspace_bytes(sf, samp_rate, bw);
     if (ws_bytes == 0)
         return LORA_ERR_UNSUPPORTED;
-    /* Reuse persistent FFT demod workspace/context in ws */
-    int need_reinit = 0;
-    if (!ws->fft_ws || ws->fft_ws_size != ws_bytes || ws->fft_sf != sf ||
-        ws->fft_fs != samp_rate || ws->fft_bw != bw) {
+    /* Reuse persistent FFT demod workspace/context in ws. */
+    if (!ws->fft_ws || ws->fft_ws_size < ws_bytes) {
+#ifdef LORA_LITE_NO_MALLOC
+        return LORA_ERR_BUFFER_TOO_SMALL;
+#else
+        /* Fallback for host builds/tests: allocate on demand */
         if (ws->fft_ws) free(ws->fft_ws);
         ws->fft_ws = aligned_alloc(32, ws_bytes);
-        if (!ws->fft_ws)
-            return LORA_ERR_OOM;
+        if (!ws->fft_ws) return LORA_ERR_OOM;
         ws->fft_ws_size = ws_bytes;
+#endif
+    }
+    if (!ws->fft_inited || ws->fft_sf != sf || ws->fft_fs != samp_rate || ws->fft_bw != bw) {
+        if (ws->fft_inited) {
+            lora_fft_demod_free(&ws->fft_ctx);
+            ws->fft_inited = 0;
+        }
+        if (lora_fft_demod_init(&ws->fft_ctx, sf, samp_rate, bw, ws->fft_ws, ws->fft_ws_size) != 0)
+            return LORA_ERR_IO;
+        ws->fft_ctx.cfo = 0.0f;
+        ws->fft_ctx.cfo_phase = 0.0;
         ws->fft_sf = sf;
         ws->fft_fs = samp_rate;
         ws->fft_bw = bw;
-        need_reinit = 1;
-    }
-    if (need_reinit) {
-        if (ws->fft_ctx) {
-            lora_fft_demod_free(ws->fft_ctx);
-            free(ws->fft_ctx);
-        }
-        ws->fft_ctx = (void *)malloc(sizeof(*ws->fft_ctx));
-        if (!ws->fft_ctx)
-            return LORA_ERR_OOM;
-        if (lora_fft_demod_init(ws->fft_ctx, sf, samp_rate, bw, ws->fft_ws, ws_bytes) != 0)
-            return LORA_ERR_IO;
-        ws->fft_ctx->cfo = 0.0f;
-        ws->fft_ctx->cfo_phase = 0.0;
+        ws->fft_inited = 1;
     }
     /* First pass demod without CFO to get coarse symbols for frame sync. */
-    ws->fft_ctx->cfo = 0.0f;
-    ws->fft_ctx->cfo_phase = 0.0;
-    lora_fft_demod(ws->fft_ctx, chip_ptr, nsym, symbols);
+    ws->fft_ctx.cfo = 0.0f;
+    ws->fft_ctx.cfo_phase = 0.0;
+    lora_fft_demod(&ws->fft_ctx, chip_ptr, nsym, symbols);
 
     /* Estimate CFO from preamble region using dechirped phase slope. */
-    const uint32_t sps_u = ws->fft_ctx->sps;
+    const uint32_t sps_u = ws->fft_ctx.sps;
     const size_t sps_sz = (size_t)sps_u;
     size_t preamble_end = lora_frame_sync_find_preamble(symbols, nsym, 8);
     ws->sync_preamble_end = preamble_end;
@@ -147,21 +146,21 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
             size_t sym1 = preamble_end - 1;
             size_t chip_start = sym0 * sps_sz;
             size_t chip_end = sym1 * sps_sz + (sps_sz - 1);
-            if (chip_end < nchips && ws->fft_ctx->downchirp) {
+            if (chip_end < nchips && ws->fft_ctx.downchirp) {
                 float complex acc = 0.0f;
                 /* Average phase increment over dechirped samples */
                 for (size_t s = sym0; s <= sym1; ++s) {
                     size_t base = s * sps_sz;
                     /* Within-symbol pairs */
                     for (size_t k = 0; k + 1 < sps_u; ++k) {
-                        float complex x0 = chips[base + k] * ws->fft_ctx->downchirp[k];
-                        float complex x1 = chips[base + k + 1] * ws->fft_ctx->downchirp[k + 1];
+                        float complex x0 = chips[base + k] * ws->fft_ctx.downchirp[k];
+                        float complex x1 = chips[base + k + 1] * ws->fft_ctx.downchirp[k + 1];
                         acc += conjf(x0) * x1;
                     }
                     /* Cross-boundary pair to next symbol if still in range */
                     if (s < sym1) {
-                        float complex x0 = chips[base + (sps_u - 1)] * ws->fft_ctx->downchirp[sps_u - 1];
-                        float complex x1 = chips[base + sps_u] * ws->fft_ctx->downchirp[0];
+                        float complex x0 = chips[base + (sps_u - 1)] * ws->fft_ctx.downchirp[sps_u - 1];
+                        float complex x1 = chips[base + sps_u] * ws->fft_ctx.downchirp[0];
                         acc += conjf(x0) * x1;
                     }
                 }
@@ -172,11 +171,11 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
                     float max_cfo = (float)bw * 0.45f;
                     if (cfo_est > max_cfo) cfo_est = max_cfo;
                     if (cfo_est < -max_cfo) cfo_est = -max_cfo;
-                    ws->fft_ctx->cfo = cfo_est;
+                    ws->fft_ctx.cfo = cfo_est;
                     ws->sync_cfo_hz = cfo_est;
-                    ws->fft_ctx->cfo_phase = 0.0;
+                    ws->fft_ctx.cfo_phase = 0.0;
                     /* Re-run demod with CFO correction */
-                    lora_fft_demod(ws->fft_ctx, chip_ptr, nsym, symbols);
+                    lora_fft_demod(&ws->fft_ctx, chip_ptr, nsym, symbols);
                 }
             }
         }
@@ -246,6 +245,13 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
     return LORA_OK;
 }
 
+/* Helper: bytes required for FFT demod workspace for the given config. */
+size_t lora_rx_fft_workspace_bytes(const lora_chain_cfg *cfg)
+{
+    if (!cfg) return 0;
+    return lora_fft_workspace_bytes(cfg->sf, cfg->samp_rate, cfg->bw);
+}
+
 lora_status lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg)
 {
     if (!in || !out || !cfg)
@@ -272,15 +278,27 @@ lora_status lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg
     }
     size_t payload_len;
     static lora_rx_workspace ws;
+    /* Prepare FFT demod workspace for this one-shot run (helper is allowed to malloc). */
+    size_t fft_bytes = lora_rx_fft_workspace_bytes(cfg);
+    ws.fft_ws = NULL; ws.fft_ws_size = 0; ws.fft_inited = 0;
+    if (fft_bytes > 0) {
+        ws.fft_ws = aligned_alloc(32, fft_bytes);
+        if (!ws.fft_ws) { free(chips); free(payload); return LORA_ERR_OOM; }
+        ws.fft_ws_size = fft_bytes;
+    }
     lora_status st = lora_rx_chain(chips, nchips, payload, LORA_MAX_PAYLOAD_LEN, &payload_len, cfg, &ws);
     if (st != LORA_OK) {
         free(chips);
         free(payload);
+        if (ws.fft_inited) lora_fft_demod_free(&ws.fft_ctx);
+        if (ws.fft_ws) free(ws.fft_ws);
         return st;
     }
 
     size_t wr = out->write(out->ctx, payload, payload_len);
     free(chips);
     free(payload);
+    if (ws.fft_inited) lora_fft_demod_free(&ws.fft_ctx);
+    if (ws.fft_ws) free(ws.fft_ws);
     return (wr == payload_len) ? LORA_OK : LORA_ERR_IO;
 }

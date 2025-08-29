@@ -5,6 +5,7 @@
 #include <complex.h>
 #include "lora_config.h"
 #include "lora_io.h"
+#include "lora_fft_demod.h"
 #ifdef LORA_LITE_FIXED_POINT
 #include "lora_fixed.h"
 #endif
@@ -41,14 +42,15 @@ typedef struct {
 #ifdef LORA_LITE_FIXED_POINT
     lora_q15_complex qchips[LORA_MAX_CHIPS];
 #endif
-    /* Persistent FFT demod workspace/context for embedded reuse */
-    void *fft_ws;
-    size_t fft_ws_size;
-    uint8_t fft_sf;
+    /* Persistent FFT demod workspace/context for embedded reuse (no malloc) */
+    void *fft_ws;        /* caller-provided aligned workspace buffer */
+    size_t fft_ws_size;  /* size of fft_ws in bytes */
+    uint8_t fft_sf;      /* cached init params for reuse */
     uint32_t fft_fs;
     uint32_t fft_bw;
-    /* Persistent demodulator context (opaque pointer to avoid heavy includes) */
-    struct lora_fft_demod_ctx *fft_ctx;
+    int fft_inited;      /* whether fft_ctx has been initialised */
+    struct lora_fft_demod_ctx *reserved_do_not_use_ptr; /* ABI padding */
+    struct lora_fft_demod_ctx fft_ctx; /* embedded context storage */
 
     /* Sync/analysis metrics (populated by lora_rx_chain) */
     size_t sync_preamble_start; /* first preamble-like symbol index (best effort) */
@@ -73,6 +75,9 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
                           size_t *restrict payload_len_out,
                           const lora_chain_cfg *cfg,
                           lora_rx_workspace *ws);
+
+/* Helper: bytes required for FFT demod workspace for the given config. */
+size_t lora_rx_fft_workspace_bytes(const lora_chain_cfg *cfg);
 
 lora_status lora_tx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);
 lora_status lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);
