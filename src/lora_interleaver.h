@@ -28,7 +28,7 @@ void lora_interleave(const uint8_t *restrict in, uint32_t *restrict out,
  * sf_app : number of codewords in block
  * cw_len : number of bits per codeword
  */
-void lora_deinterleave(const uint32_t *in, uint8_t *out,
+void lora_deinterleave(const uint32_t *restrict in, uint8_t *restrict out,
                        uint8_t sf, uint8_t sf_app, uint8_t cw_len);
 
 #endif /* LORA_INTERLEAVER_H */

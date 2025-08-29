@@ -121,6 +121,10 @@ int lora_fft_demod_init(lora_fft_demod_ctx_t *ctx, uint8_t sf, uint32_t fs,
   if (lora_fft_init(&ctx->fft, n_bins, ctx->fft.work, ctx->fft.tw, use_liquid_fft) != 0)
     return -1;
 
+#if defined(LORA_LITE_FIXED_POINT) && defined(LORA_LITE_USE_CMSIS)
+  (void)lora_fft_q15_init(&ctx->fft_q15, n_bins);
+#endif
+
   float complex upchirp[sps];
   lora_build_ref_chirps(upchirp, ctx->downchirp, sf, os_factor);
 
@@ -144,6 +148,9 @@ int lora_fft_demod_init(lora_fft_demod_ctx_t *ctx, uint8_t sf, uint32_t fs,
 
 void lora_fft_demod_free(lora_fft_demod_ctx_t *ctx) {
   lora_fft_dispose(&ctx->fft);
+#if defined(LORA_LITE_FIXED_POINT) && defined(LORA_LITE_USE_CMSIS)
+  lora_fft_q15_dispose(&ctx->fft_q15);
+#endif
 }
 
 /*
@@ -225,7 +232,14 @@ void lora_fft_demod(lora_fft_demod_ctx_t *ctx,
       dechirp_and_accumulate(sc, downchirp, n_bins, os_factor, fft_in, 0, NULL,
                              0.0f);
 #endif
+      /* Choose FFT backend depending on build flags */
+#if defined(LORA_LITE_FIXED_POINT) && defined(LORA_LITE_USE_CMSIS)
+      lora_fft_q15_exec_fwd(&ctx->fft_q15, ctx->bins_q15, ctx->bins_q15);
+      /* Convert FFT output to float for magnitude search */
+      q15_to_cf(fft_out, ctx->bins_q15, n_bins);
+#else
       lora_fft_exec_fwd(&ctx->fft, fft_in, fft_out);
+#endif
       float max_mag = 0.0f;
       uint32_t max_idx = 0;
       for (uint32_t i = 0; i < n_bins; ++i) {
@@ -282,10 +296,20 @@ void lora_fft_demod(lora_fft_demod_ctx_t *ctx,
     const float complex *restrict sc = chips + s * sps;
 #endif
     /* CFO present: rotate each chip by the evolving phase. */
-#ifndef LORA_LITE_FIXED_POINT
+#if !defined(LORA_LITE_FIXED_POINT)
     dechirp_and_accumulate(sc, downchirp, n_bins, os_factor, fft_in, 1, &phase, step);
-#endif
     lora_fft_exec_fwd(&ctx->fft, fft_in, fft_out);
+#else
+    /* Fixed-point path already filled ctx->bins_q15 with dechirped accumulations. */
+#  if defined(LORA_LITE_USE_CMSIS)
+    lora_fft_q15_exec_fwd(&ctx->fft_q15, ctx->bins_q15, ctx->bins_q15);
+    q15_to_cf(fft_out, ctx->bins_q15, n_bins);
+#  else
+    /* Fallback: convert to float then run float FFT */
+    q15_to_cf(fft_in, ctx->bins_q15, n_bins);
+    lora_fft_exec_fwd(&ctx->fft, fft_in, fft_out);
+#  endif
+#endif
     float max_mag = 0.0f;
     uint32_t max_idx = 0;
     for (uint32_t i = 0; i < n_bins; ++i) {

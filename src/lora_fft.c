@@ -58,22 +58,37 @@ void lora_fft_exec_fwd(const lora_fft_ctx_t *ctx,
                        const float complex *restrict in,
                        float complex *restrict out) {
     unsigned n = ctx->n;
+    /* Create local restrict views and hint alignment for hot arrays. */
+    float complex *restrict work = ctx->work;
+    const float complex *restrict tw = ctx->tw;
+#if defined(__GNUC__)
+    work = (float complex *restrict)__builtin_assume_aligned(work, 32);
+    tw   = (const float complex *restrict)__builtin_assume_aligned(tw, 32);
+    in   = (const float complex *restrict)__builtin_assume_aligned(in, 32);
+    out  = (float complex *restrict)__builtin_assume_aligned(out, 32);
+#endif
     if (ctx->use_liquid && ctx->liquid_plan) {
 #ifdef LORA_LITE_USE_LIQUID_FFT
-        memcpy(ctx->work, in, n * sizeof(float complex));
+        memcpy(work, in, n * sizeof(float complex));
         fft_execute((fftplan)ctx->liquid_plan);
-        memcpy(out, ctx->work, n * sizeof(float complex));
+        memcpy(out, work, n * sizeof(float complex));
         return;
 #endif
     }
 
-    /* Copy input into work in bit-reversed order to avoid a separate pass */
+#if defined(LORA_LITE_FFT_BITREV_COPY)
+    /* Copy input into work in bit-reversed order to avoid a separate pass. */
     unsigned log2n = 0; while ((1u << log2n) < n) ++log2n;
     for (unsigned i = 0; i < n; ++i) {
         unsigned x = i, r = 0;
         for (unsigned b = 0; b < log2n; ++b) { r = (r << 1) | (x & 1u); x >>= 1; }
-        ctx->work[r] = in[i];
+        work[r] = in[i];
     }
+#else
+    /* Straight copy then in-place bit-reversal (copy-once mode off). */
+    memcpy(work, in, n * sizeof(float complex));
+    bit_reverse(work, n);
+#endif
 
     unsigned step = 1;
     while (step < n) {
@@ -83,27 +98,28 @@ void lora_fft_exec_fwd(const lora_fft_ctx_t *ctx,
             /* small unroll by 2 for inner butterflies when possible */
             unsigned k = 0;
             for (; k + 1 < step; k += 2) {
-                float complex w0 = ctx->tw[(k + 0) * tw_step];
-                float complex w1 = ctx->tw[(k + 1) * tw_step];
-                float complex a0 = ctx->work[i + k + 0];
-                float complex a1 = ctx->work[i + k + step + 0];
-                float complex b0 = ctx->work[i + k + 1];
-                float complex b1 = ctx->work[i + k + step + 1];
+                float complex w0 = tw[(k + 0) * tw_step];
+                float complex w1 = tw[(k + 1) * tw_step];
+                float complex a0 = work[i + k + 0];
+                float complex a1 = work[i + k + step + 0];
+                float complex b0 = work[i + k + 1];
+                float complex b1 = work[i + k + step + 1];
                 float complex t0 = a1 * w0;
                 float complex t1 = b1 * w1;
-                ctx->work[i + k + 0]       = a0 + t0;
-                ctx->work[i + k + step + 0] = a0 - t0;
-                ctx->work[i + k + 1]       = b0 + t1;
-                ctx->work[i + k + step + 1] = b0 - t1;
+                work[i + k + 0]       = a0 + t0;
+                work[i + k + step + 0] = a0 - t0;
+                work[i + k + 1]       = b0 + t1;
+                work[i + k + step + 1] = b0 - t1;
             }
             for (; k < step; ++k) {
-                float complex t = ctx->work[i + k + step] * ctx->tw[k * tw_step];
-                float complex u = ctx->work[i + k];
-                ctx->work[i + k] = u + t;
-                ctx->work[i + k + step] = u - t;
+                float complex t = work[i + k + step] * tw[k * tw_step];
+                float complex u = work[i + k];
+                work[i + k] = u + t;
+                work[i + k + step] = u - t;
             }
         }
         step = jump;
     }
-    memcpy(out, ctx->work, n * sizeof(float complex));
+    /* Allow aliasing: if out == work, avoid final copy. */
+    if (out != work) memcpy(out, work, n * sizeof(float complex));
 }

@@ -27,7 +27,7 @@ void lora_interleave(const uint8_t *restrict in, uint32_t *restrict out,
     }
 }
 
-void lora_deinterleave(const uint32_t *in, uint8_t *out,
+void lora_deinterleave(const uint32_t *restrict in, uint8_t *restrict out,
                        uint8_t sf, uint8_t sf_app, uint8_t cw_len)
 {
     const uint8_t (*perm)[12] = LORA_INTERLEAVE_PERM[sf - 7][sf_app - 1];

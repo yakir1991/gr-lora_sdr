@@ -4,6 +4,9 @@
 #include "lora_config.h"
 #include "lora_fixed.h"
 #include "lora_fft.h"
+#ifdef LORA_LITE_FIXED_POINT
+#include "lora_fft_q15.h"
+#endif
 #include <stddef.h>
 #include <complex.h>
 #include <stdint.h>
@@ -30,6 +33,7 @@ typedef struct lora_fft_demod_ctx {
 #ifdef LORA_LITE_FIXED_POINT
   _Alignas(32) lora_q15_complex *downchirp_q15; /* Q15 downchirp (for fixed path) */
   _Alignas(32) lora_q15_complex *bins_q15;      /* Q15 accumulation buffer (n_bins) */
+  lora_fft_q15_ctx_t fft_q15;                   /* Optional Q15 FFT backend */
 #endif
 } lora_fft_demod_ctx_t;
 

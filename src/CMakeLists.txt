@@ -59,6 +59,8 @@ target_link_libraries(lora_mod PUBLIC lora_utils m)
 add_library(lora_fft lora_fft.c)
 if(LORA_LITE_FIXED_POINT)
   target_sources(lora_fft PRIVATE q15_to_cf.c)
+  # Optional Q15 FFT backend (CMSIS or portable fallback)
+  target_sources(lora_fft PRIVATE lora_fft_q15.c)
 endif()
 target_include_directories(lora_fft PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
@@ -146,6 +148,7 @@ foreach(t ${LORA_LITE_TARGETS})
   target_compile_definitions(${t} PRIVATE
     $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>
     $<$<BOOL:${LORA_LITE_USE_LIQUID_FFT}>:LORA_LITE_USE_LIQUID_FFT>
+    $<$<BOOL:${LORA_LITE_FFT_BITREV_COPY}>:LORA_LITE_FFT_BITREV_COPY>
     LORA_LITE_ENABLE_LOGGING=$<IF:$<BOOL:${LORA_LITE_ENABLE_LOGGING}>,1,0>)
 endforeach()
 
@@ -167,3 +170,8 @@ install(EXPORT lora_liteTargets
         FILE lora_liteTargets.cmake
         NAMESPACE lora_lite::
         DESTINATION lib/cmake/lora_lite)
+include(CheckIncludeFile)
+check_include_file("arm_math.h" LORA_LITE_HAVE_CMSIS_HEADERS)
+if(LORA_LITE_HAVE_CMSIS_HEADERS)
+  add_compile_definitions(LORA_LITE_HAVE_CMSIS_HEADERS=1)
+endif()

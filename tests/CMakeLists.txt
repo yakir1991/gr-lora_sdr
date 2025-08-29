@@ -16,6 +16,8 @@ function(lora_add_test NAME)
   set_target_properties(${NAME} PROPERTIES BUILD_RPATH "${PROJECT_BINARY_DIR}/src")
   target_link_options(${NAME} PRIVATE -Wl,-rpath,${PROJECT_BINARY_DIR}/src)
   add_test(NAME ${NAME} COMMAND ${NAME})
+  # Ensure runtime loads build-tree libs first
+  set_tests_properties(${NAME} PROPERTIES ENVIRONMENT "LD_LIBRARY_PATH=${PROJECT_BINARY_DIR}/src")
   if(LT_PASS_REGEX)
     set_tests_properties(${NAME} PROPERTIES PASS_REGULAR_EXPRESSION "${LT_PASS_REGEX}")
   endif()
@@ -35,6 +37,7 @@ function(lora_add_test NAME)
   set_target_properties(${NAME}_nolog PROPERTIES BUILD_RPATH "${PROJECT_BINARY_DIR}/src")
   target_link_options(${NAME}_nolog PRIVATE -Wl,-rpath,${PROJECT_BINARY_DIR}/src)
   add_test(NAME ${NAME}_nolog COMMAND ${NAME}_nolog)
+  set_tests_properties(${NAME}_nolog PROPERTIES ENVIRONMENT "LD_LIBRARY_PATH=${PROJECT_BINARY_DIR}/src")
   if(LT_WORKING_DIR)
     set_tests_properties(${NAME}_nolog PROPERTIES WORKING_DIRECTORY ${LT_WORKING_DIR})
   endif()
@@ -186,12 +189,12 @@ if(LEGACY_COMPAT_TESTS)
 endif()
 
 lora_add_test(test_fixed_float_float
-  SOURCES test_fixed_float_equiv.c ../src/lora_mod.c ../src/lora_fft_demod.c ../src/lora_utils.c ../src/lora_fft.c ../src/q15_to_cf.c
+  SOURCES test_fixed_float_equiv.c ../src/lora_mod.c ../src/lora_fft_demod.c ../src/lora_utils.c ../src/lora_fft.c ../src/q15_to_cf.c ../src/lora_fft_q15.c
   LIBS m
   DEFINITIONS LORA_LITE_FIXED_POINT)
 
 lora_add_test(test_fixed_float_fixed
-  SOURCES test_fixed_float_equiv.c ../src/lora_mod.c ../src/lora_fft_demod.c ../src/lora_utils.c ../src/lora_fft.c ../src/q15_to_cf.c
+  SOURCES test_fixed_float_equiv.c ../src/lora_mod.c ../src/lora_fft_demod.c ../src/lora_utils.c ../src/lora_fft.c ../src/q15_to_cf.c ../src/lora_fft_q15.c
   LIBS m
   DEFINITIONS LORA_LITE_FIXED_POINT)
 
@@ -320,12 +323,28 @@ endif()
 if(LORA_LITE_BENCHMARK)
   add_executable(bench_fft benchmarks/bench_fft.c)
   target_link_libraries(bench_fft PRIVATE lora_fft)
+  set_target_properties(bench_fft PROPERTIES BUILD_RPATH "${PROJECT_BINARY_DIR}/src")
+  target_link_options(bench_fft PRIVATE -Wl,-rpath,${PROJECT_BINARY_DIR}/src)
   target_compile_definitions(bench_fft PRIVATE
     LORA_LITE_ENABLE_LOGGING=0
     $<$<BOOL:${LORA_LITE_USE_LIQUID_FFT}>:LORA_LITE_USE_LIQUID_FFT>
   )
   target_compile_options(bench_fft PRIVATE -O3 -DNDEBUG)
   add_test(NAME bench_fft COMMAND bench_fft)
+endif()
+
+# Micro-benchmark: Q15 FFT vs float (all SFs)
+if(LORA_LITE_FIXED_POINT AND LORA_LITE_BENCHMARK)
+  add_executable(bench_fft_q15 benchmarks/bench_fft_q15.c)
+  target_link_libraries(bench_fft_q15 PRIVATE lora_fft m)
+  set_target_properties(bench_fft_q15 PROPERTIES BUILD_RPATH "${PROJECT_BINARY_DIR}/src")
+  target_link_options(bench_fft_q15 PRIVATE -Wl,-rpath,${PROJECT_BINARY_DIR}/src)
+  target_compile_definitions(bench_fft_q15 PRIVATE
+    LORA_LITE_ENABLE_LOGGING=0 LORA_LITE_FIXED_POINT
+    $<$<BOOL:${LORA_LITE_USE_CMSIS}>:LORA_LITE_USE_CMSIS>
+  )
+  target_compile_options(bench_fft_q15 PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_fft_q15 COMMAND bench_fft_q15)
 endif()
 
 # End-to-end embedded throughput guard (optional)
