@@ -87,6 +87,11 @@ int main(int argc, char **argv) {
   double us_per_sym = (sec * 1e6) / (double)nsym;
 
   puts("metric,value");
+#ifdef LORA_LITE_USE_LIQUID_FFT
+  puts("fft_backend,liquid");
+#else
+  puts("fft_backend,kiss");
+#endif
   printf("demod_us_per_sym_sf%u_os%u,%.3f\n", sf, os, us_per_sym);
   printf("demod_workspace_bytes,%.0f\n", (double)need);
 
@@ -99,4 +104,3 @@ int main(int argc, char **argv) {
   free(down);
   return 0;
 }
-

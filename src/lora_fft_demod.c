@@ -114,7 +114,11 @@ int lora_fft_demod_init(lora_fft_demod_ctx_t *ctx, uint8_t sf, uint32_t fs,
   p += n_bins * sizeof(lora_q15_complex);
 #endif
 
-  if (lora_fft_init(&ctx->fft, n_bins, ctx->fft.work, ctx->fft.tw, 0) != 0)
+  int use_liquid_fft = 0;
+#ifdef LORA_LITE_USE_LIQUID_FFT
+  use_liquid_fft = 1;
+#endif
+  if (lora_fft_init(&ctx->fft, n_bins, ctx->fft.work, ctx->fft.tw, use_liquid_fft) != 0)
     return -1;
 
   float complex upchirp[sps];

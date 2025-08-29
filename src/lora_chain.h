@@ -49,6 +49,15 @@ typedef struct {
     uint32_t fft_bw;
     /* Persistent demodulator context (opaque pointer to avoid heavy includes) */
     struct lora_fft_demod_ctx *fft_ctx;
+
+    /* Sync/analysis metrics (populated by lora_rx_chain) */
+    size_t sync_preamble_start; /* first preamble-like symbol index (best effort) */
+    size_t sync_preamble_end;   /* index after preamble */
+    size_t sync_sfd_end;        /* index after SFD window */
+    size_t sync_sym_off;        /* symbols trimmed before decode */
+    uint8_t sync_preamble_match_pct; /* 0..100 of preamble-like within span */
+    uint8_t sync_sfd_nonzero;        /* count of non-preamble-like in SFD window */
+    float   sync_cfo_hz;             /* estimated CFO in Hz (after clamp) */
 } lora_rx_workspace;
 
 /*

@@ -1,7 +1,0 @@
-option(LORA_LITE_USE_LIQUID_FFT "Use liquid-dsp FFT backend" ON)
-if(LORA_LITE_USE_LIQUID_FFT)
-  find_package(Liquid REQUIRED)
-  target_link_libraries(lora_fft_demod PRIVATE Liquid::liquid)
-else()
-  # fallback to KISS FFT (already included)
-endif()

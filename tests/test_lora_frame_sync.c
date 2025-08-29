@@ -2,6 +2,9 @@
 #include "lora_log.h"
 #include "lora_frame_sync.h"
 
+/* Note: this test uses the library's lora_frame_sync_find_sfd() implementation.
+ * Runtime linking prefers build-tree libs via RPATH set in tests/CMakeLists.txt. */
+
 int main(void)
 {
     // Test 1: clean preamble at start
@@ -40,6 +43,9 @@ int main(void)
         return 1;
     }
 
+
     LORA_LOG_INFO("Frame sync test passed");
+
+    /* SFD behavior is covered by integration tests (test_sync_end_to_end). */
     return 0;
 }

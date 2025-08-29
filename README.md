@@ -8,11 +8,17 @@ lora_lite is a sandbox for experimenting with LoRa® software-defined radio comp
 - **Simplified build system** – uses only CMake and CTest for quick setup and easy CI integration.
 - **Dual math paths** – builds support floating-point or Q15 fixed-point demodulation; set
   `-DLORA_LITE_FIXED_POINT=ON` to use the fixed-point variant.
+- **Pluggable FFT backend** – the built-in FFT (KISS-style) can be replaced by Liquid-DSP
+  (and FFTW under the hood) by building with `-DLORA_LITE_USE_LIQUID_FFT=ON`.
+  Bench scripts under `scripts/` compare KISS vs Liquid/FFTW.
 
 The original GNU Radio-based implementation is preserved in [legacy_gr_lora_sdr/](legacy_gr_lora_sdr/) and remains unmodified for reference.
 
 For installation and cross-compilation instructions see [SETUP.md](SETUP.md). Testing and benchmarking steps live in [TESTING.md](TESTING.md). Additional documentation can be found in [doc/README.md](doc/README.md). A detailed log of performance experiments and optimization roadmap is available in [doc/EXPERIMENTS.md](doc/EXPERIMENTS.md).
 
 ## Repository Layout
-- `lora_lite/` – core modular library and tests
+- `src/` – core modular library (FFT, demod, whitening, header, rx/tx chains, frame sync)
+- `include/` – public headers used across modules
+- `tests/` – unit/integration tests and optional micro-benchmarks (gated by `-DLORA_LITE_BENCHMARK=ON`)
+- `doc/` – project documentation and experiments log
 - `legacy_gr_lora_sdr/` – archived GNU Radio implementation kept for reference

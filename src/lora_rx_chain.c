@@ -5,8 +5,11 @@
 #include "lora_add_crc.h"
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "lora_fft_demod.h"
+#include "lora_frame_sync.h"
+#include "lora_log.h"
 #ifdef LORA_LITE_FIXED_POINT
 #include "lora_fixed.h"
 #if defined(__ARM_NEON)
@@ -112,29 +115,127 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
         ws->fft_ctx->cfo = 0.0f;
         ws->fft_ctx->cfo_phase = 0.0;
     }
+    /* First pass demod without CFO to get coarse symbols for frame sync. */
+    ws->fft_ctx->cfo = 0.0f;
+    ws->fft_ctx->cfo_phase = 0.0;
     lora_fft_demod(ws->fft_ctx, chip_ptr, nsym, symbols);
 
+    /* Estimate CFO from preamble region using dechirped phase slope. */
+    const uint32_t sps_u = ws->fft_ctx->sps;
+    const size_t sps_sz = (size_t)sps_u;
+    size_t preamble_end = lora_frame_sync_find_preamble(symbols, nsym, 8);
+    ws->sync_preamble_end = preamble_end;
+    ws->sync_preamble_start = preamble_end;
+    ws->sync_cfo_hz = 0.0f;
+    ws->sync_preamble_match_pct = 0;
+    if (preamble_end < nsym && preamble_end >= 4) {
+        /* Walk back to estimate preamble start (tolerant near-zero). */
+        size_t preamble_start = preamble_end;
+        while (preamble_start > 0 && (symbols[preamble_start - 1] <= 1))
+            --preamble_start;
+        ws->sync_preamble_start = preamble_start;
+        /* Compute preamble match percentage within [start,end) */
+        size_t span = preamble_end > preamble_start ? (preamble_end - preamble_start) : 0;
+        if (span > 0 && span < 255) {
+            size_t good = 0;
+            for (size_t i = preamble_start; i < preamble_end; ++i) good += (symbols[i] <= 1);
+            ws->sync_preamble_match_pct = (uint8_t)((100u * good + (span/2)) / span);
+        }
+        /* Require at least 4 preamble symbols for a stable estimate */
+        if (preamble_end > preamble_start && (preamble_end - preamble_start) >= 4) {
+            size_t sym0 = preamble_start;
+            size_t sym1 = preamble_end - 1;
+            size_t chip_start = sym0 * sps_sz;
+            size_t chip_end = sym1 * sps_sz + (sps_sz - 1);
+            if (chip_end < nchips && ws->fft_ctx->downchirp) {
+                float complex acc = 0.0f;
+                /* Average phase increment over dechirped samples */
+                for (size_t s = sym0; s <= sym1; ++s) {
+                    size_t base = s * sps_sz;
+                    /* Within-symbol pairs */
+                    for (size_t k = 0; k + 1 < sps_u; ++k) {
+                        float complex x0 = chips[base + k] * ws->fft_ctx->downchirp[k];
+                        float complex x1 = chips[base + k + 1] * ws->fft_ctx->downchirp[k + 1];
+                        acc += conjf(x0) * x1;
+                    }
+                    /* Cross-boundary pair to next symbol if still in range */
+                    if (s < sym1) {
+                        float complex x0 = chips[base + (sps_u - 1)] * ws->fft_ctx->downchirp[sps_u - 1];
+                        float complex x1 = chips[base + sps_u] * ws->fft_ctx->downchirp[0];
+                        acc += conjf(x0) * x1;
+                    }
+                }
+                if (cabsf(acc) > 0.0f) {
+                    float dphi = cargf(acc); /* radians per sample */
+                    float cfo_est = (float)(dphi * (double)samp_rate / (2.0 * M_PI));
+                    /* Clamp CFO estimate to a reasonable fraction of BW */
+                    float max_cfo = (float)bw * 0.45f;
+                    if (cfo_est > max_cfo) cfo_est = max_cfo;
+                    if (cfo_est < -max_cfo) cfo_est = -max_cfo;
+                    ws->fft_ctx->cfo = cfo_est;
+                    ws->sync_cfo_hz = cfo_est;
+                    ws->fft_ctx->cfo_phase = 0.0;
+                    /* Re-run demod with CFO correction */
+                    lora_fft_demod(ws->fft_ctx, chip_ptr, nsym, symbols);
+                }
+            }
+        }
+    }
+
+    /* Frame alignment: trim preamble+SFD if present. */
+#ifndef LORA_FS_DEFAULT_PREAMBLE
+#define LORA_FS_DEFAULT_PREAMBLE 8
+#endif
+    size_t sym_off = 0;
+    {
+        size_t pre_end2 = lora_frame_sync_find_preamble(symbols, nsym, LORA_FS_DEFAULT_PREAMBLE);
+        if (pre_end2 < nsym) {
+            size_t sfd_end = lora_frame_sync_find_sfd(symbols, nsym, pre_end2, 2, 4);
+            ws->sync_sfd_end = sfd_end;
+            /* Count SFD non-preamble-like symbols for metric */
+            uint8_t sfd_nonzero = 0;
+            if (sfd_end > pre_end2) {
+                size_t sfd_len = sfd_end - pre_end2;
+                for (size_t i = pre_end2; i < sfd_end; ++i)
+                    sfd_nonzero += (symbols[i] > 1) ? 1 : 0;
+            }
+            ws->sync_sfd_nonzero = sfd_nonzero;
+            sym_off = (sfd_end < nsym) ? sfd_end : 0;
+        } else {
+            ws->sync_sfd_end = pre_end2;
+        }
+    }
+    ws->sync_sym_off = sym_off;
+
+    LORA_LOG_INFO(
+        "Sync metrics: pre=[%zu..%zu) match=%u%% sfd_end=%zu off=%zu CFO=%.1f Hz",
+        ws->sync_preamble_start, ws->sync_preamble_end,
+        ws->sync_preamble_match_pct,
+        ws->sync_sfd_end, ws->sync_sym_off,
+        ws->sync_cfo_hz);
+
     uint8_t *whitened = ws->whitened;
-    for (size_t i = 0; i < nsym; ++i)
-        whitened[i] = (uint8_t)(symbols[i] & 0xFF);
+    size_t nsym_aligned = (sym_off < nsym) ? (nsym - sym_off) : 0;
+    for (size_t i = 0; i < nsym_aligned; ++i)
+        whitened[i] = (uint8_t)(symbols[sym_off + i] & 0xFF);
 
     uint8_t *payload_crc = ws->payload_crc;
-    lora_dewhiten(whitened, payload_crc, nsym);
+    lora_dewhiten(whitened, payload_crc, nsym_aligned);
 
-    if (nsym < 2)
+    if (nsym_aligned < 2)
         return LORA_ERR_INVALID_ARG;
-    size_t payload_len = nsym - 2;
+    size_t payload_len = nsym_aligned - 2;
     if (payload_len > payload_buf_len)
         return LORA_ERR_BUFFER_TOO_SMALL;
     uint8_t crc1 = payload_crc[payload_len];
     uint8_t crc2 = payload_crc[payload_len + 1];
 
     uint8_t *tmp = ws->tmp;
-    memcpy(tmp, payload_crc, nsym);
+    memcpy(tmp, payload_crc, nsym_aligned);
     tmp[payload_len] = 0;
     tmp[payload_len + 1] = 0;
     uint8_t crc_n[4];
-    lora_add_crc(tmp, nsym, crc_n);
+    lora_add_crc(tmp, nsym_aligned, crc_n);
     uint8_t calc_crc1 = (uint8_t)((crc_n[1] << 4) | crc_n[0]);
     uint8_t calc_crc2 = (uint8_t)((crc_n[3] << 4) | crc_n[2]);
     if (crc1 != calc_crc1 || crc2 != calc_crc2)

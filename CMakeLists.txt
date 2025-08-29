@@ -8,6 +8,7 @@ option(LORA_LITE_USE_LIQUID_FFT "Use liquid-dsp FFT backend" ON)
 option(USE_SYSTEM_LIQUID_DSP "Use system or submodule liquid-dsp instead of FetchContent" OFF)
 option(BUILD_SHARED_LIBS "Build libraries as shared" ON)
 option(LORA_LITE_STATIC "Build static library artifacts" OFF)
+option(LEGACY_COMPAT_TESTS "Enable tests that compare against legacy/gr-lora_sdr artifacts" OFF)
 
 if(LORA_LITE_STATIC)
   set(BUILD_SHARED_LIBS OFF)

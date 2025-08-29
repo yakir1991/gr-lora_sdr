@@ -90,6 +90,11 @@ int main(void) {
   for (size_t i = 0; i < nsym; ++i) if (symbols[i] != 0u) { ok = 0; break; }
 
   puts("metric,value");
+#ifdef LORA_LITE_USE_LIQUID_FFT
+  puts("fft_backend,liquid");
+#else
+  puts("fft_backend,kiss");
+#endif
   printf("demod_cfo_us_per_sym_sf%u_os%u,%.3f\n", sf, os, us_per_sym);
   printf("ok,%d\n", ok);
 

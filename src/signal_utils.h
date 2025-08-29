@@ -12,4 +12,8 @@
  */
 double rms(const double *data, size_t len);
 
+/* Optimized single-precision RMS for embedded targets. Uses compensated
+ * summation to improve numerical stability while keeping float math. */
+float rmsf(const float *data, size_t len);
+
 #endif // SIGNAL_UTILS_H

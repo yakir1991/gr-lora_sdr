@@ -37,6 +37,60 @@ sed -n '1,200p' "$LATEST_SUM_DIR/SUMMARY.md"
 
 ## Results
 
+### L) Host quick-check — KISS vs Liquid/FFTW (our bench scripts)
+
+Runs from 2025-08-29 on the same host, using the new scripts under `scripts/`.
+
+1) FFT micro-bench (`bench_fft`), µs per exec (lower is better):
+
+| SF | OFF (kiss) | ON (liquid) | ON/OFF |
+|----|-----------:|------------:|-------:|
+| 7  | 4.837 | 4.872 | 1.007 |
+| 8  | 10.409 | 10.905 | 1.048 |
+| 9  | 23.147 | 23.356 | 1.009 |
+| 10 | 51.087 | 51.735 | 1.013 |
+| 11 | 116.215 | 112.933 | 0.972 |
+| 12 | 255.776 | 244.543 | 0.956 |
+
+Interpretation: small wins for Liquid/FFTW at larger sizes (SF 11–12), noise elsewhere.
+
+2) Demod micro-bench (`bench_demod`, sf7/os8, µs per symbol):
+
+| SF | OFF backend | OFF (µs/sym) | ON backend | ON (µs/sym) | ON/OFF |
+|----|-------------|--------------:|------------|------------:|-------:|
+| 7  | kiss        | 5.769         | kiss       | 5.663       | 0.982 |
+
+Note: for this run both OFF/ON benches were built with KISS in the demod bench. After propagating the `LORA_LITE_USE_LIQUID_FFT` macro to bench targets, ON will report `liquid` and reflect Liquid/FFTW.
+
+3) Full chain (`bench_lora_chain`, pps higher is better):
+
+| metric           | OFF (kiss) | ON (kiss) | ON/OFF |
+|------------------|-----------:|----------:|-------:|
+| packets_per_sec  | 10655.190  | 10601.833 | 0.995 |
+| cycles           | 9,385,098  | 9,432,331 | 1.005 |
+| bytes_allocated  | 15,792     | 15,792    | 1.000 |
+
+Takeaway: on this host and workload the differences are small at chain level. Liquid/FFTW shows mild improvements in the raw FFT at larger sizes, which may or may not move end-to-end throughput depending on other costs.
+
+Reproduce:
+
+```bash
+# FFT
+./scripts/bench_fft_matrix.sh
+LATEST=$(ls -1d bench_out/* | tail -n1)
+./scripts/compare_fft_csv.py "$LATEST/bench_fft_OFF.csv" "$LATEST/bench_fft_ON.csv"
+
+# Demod
+./scripts/bench_demod_matrix.sh
+LATEST=$(ls -1d bench_out/* | tail -n1)
+./scripts/compare_demod_csv.py "$LATEST/bench_demod_OFF.csv" "$LATEST/bench_demod_ON.csv"
+
+# Chain
+./scripts/bench_chain_matrix.sh
+LATEST=$(ls -1d bench_out/* | tail -n1)
+./scripts/compare_chain_csv.py "$LATEST/bench_chain_OFF.csv" "$LATEST/bench_chain_ON.csv"
+```
+
 ### A) Host (Release), Float vs Fixed, FFT OFF/ON
 (from a matrix run with **EMBED=0**)
 

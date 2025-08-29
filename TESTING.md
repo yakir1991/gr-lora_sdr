@@ -53,6 +53,49 @@ sf,cr,ldro,fixed,logging,cycles,bytes_allocated,packets_per_sec
 
 Analyze the CSV to compare performance across configurations.
 
+## FFT Matrix Benchmark (KISS vs Liquid/FFTW)
+Run and compare raw FFT performance with and without Liquid. If your Liquid-DSP
+is built against FFTW, the Liquid backend will call FFTW via the same API.
+
+```bash
+# Produce two CSVs under bench_out/<ts>/bench_fft_OFF.csv and bench_fft_ON.csv
+./scripts/bench_fft_matrix.sh
+
+# Compare per-SF microseconds using the CSVs
+LATEST_DIR=$(ls -1d bench_out/* | tail -n1)
+./scripts/compare_fft_csv.py "$LATEST_DIR/bench_fft_OFF.csv" "$LATEST_DIR/bench_fft_ON.csv"
+```
+
+The FFT benchmark prints:
+
+```
+metric,value
+fft_backend,kiss|liquid
+fft_us_per_exec_sf7,XXX.XXX
+...
+```
+
+## Demod Matrix Benchmark (KISS vs Liquid/FFTW)
+Measure end-to-end demodulation time per symbol with and without Liquid.
+
+```bash
+# Produce two CSVs under bench_out/<ts>/bench_demod_OFF.csv and bench_demod_ON.csv
+./scripts/bench_demod_matrix.sh
+
+# Compare us/symbol using the CSVs
+LATEST_DIR=$(ls -1d bench_out/* | tail -n1)
+./scripts/compare_demod_csv.py "$LATEST_DIR/bench_demod_OFF.csv" "$LATEST_DIR/bench_demod_ON.csv"
+```
+
+The demod benchmark prints:
+
+```
+metric,value
+fft_backend,kiss|liquid
+demod_us_per_sym_sf7_os8,XXX.XXX
+demod_workspace_bytes,YYYYY
+```
+
 ## AArch64 QEMU benchmark
 
 Prerequisites:

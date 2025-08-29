@@ -18,9 +18,8 @@ extern "C" {
  * \param length    Number of bytes in payload (including CRC bytes).
  * \param crc_nibbles Output array of four bytes where nibble values are stored.
  */
-void lora_add_crc(const uint8_t *payload, size_t length, uint8_t crc_nibbles[4]);
+void lora_add_crc(const uint8_t *restrict payload, size_t length, uint8_t crc_nibbles[4]);
 
 #ifdef __cplusplus
 }
 #endif
-

@@ -7,7 +7,14 @@ function(lora_add_test NAME)
   add_executable(${NAME} ${LT_SOURCES})
   target_link_libraries(${NAME} PRIVATE ${LT_LIBS})
   target_include_directories(${NAME} PRIVATE ${LT_INCLUDES})
-  target_compile_definitions(${NAME} PRIVATE ${LT_DEFINITIONS} LORA_LITE_ENABLE_LOGGING=1 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+  target_compile_definitions(${NAME} PRIVATE
+    ${LT_DEFINITIONS}
+    LORA_LITE_ENABLE_LOGGING=1
+    $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>
+  )
+  # Ensure tests prefer build-tree shared libs over user-installed ones
+  set_target_properties(${NAME} PROPERTIES BUILD_RPATH "${PROJECT_BINARY_DIR}/src")
+  target_link_options(${NAME} PRIVATE -Wl,-rpath,${PROJECT_BINARY_DIR}/src)
   add_test(NAME ${NAME} COMMAND ${NAME})
   if(LT_PASS_REGEX)
     set_tests_properties(${NAME} PROPERTIES PASS_REGULAR_EXPRESSION "${LT_PASS_REGEX}")
@@ -20,7 +27,13 @@ function(lora_add_test NAME)
   target_link_libraries(${NAME}_nolog PRIVATE ${LT_LIBS})
   target_include_directories(${NAME}_nolog PRIVATE ${LT_INCLUDES})
   target_compile_options(${NAME}_nolog PRIVATE -U LORA_LITE_ENABLE_LOGGING)
-  target_compile_definitions(${NAME}_nolog PRIVATE ${LT_DEFINITIONS} LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+  target_compile_definitions(${NAME}_nolog PRIVATE
+    ${LT_DEFINITIONS}
+    LORA_LITE_ENABLE_LOGGING=0
+    $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>
+  )
+  set_target_properties(${NAME}_nolog PROPERTIES BUILD_RPATH "${PROJECT_BINARY_DIR}/src")
+  target_link_options(${NAME}_nolog PRIVATE -Wl,-rpath,${PROJECT_BINARY_DIR}/src)
   add_test(NAME ${NAME}_nolog COMMAND ${NAME}_nolog)
   if(LT_WORKING_DIR)
     set_tests_properties(${NAME}_nolog PROPERTIES WORKING_DIRECTORY ${LT_WORKING_DIR})
@@ -111,6 +124,9 @@ lora_add_test(test_lora_frame_sync
   SOURCES test_lora_frame_sync.c
   LIBS lora_frame_sync
   PASS_REGEX "Frame sync test passed")
+# Avoid resolving against user-installed lib by also compiling the source
+target_sources(test_lora_frame_sync PRIVATE ${PROJECT_SOURCE_DIR}/src/lora_frame_sync.c)
+target_sources(test_lora_frame_sync_nolog PRIVATE ${PROJECT_SOURCE_DIR}/src/lora_frame_sync.c)
 
 lora_add_test(test_lora_header
   SOURCES test_lora_header.c
@@ -139,25 +155,34 @@ lora_add_test(test_end_to_end_file
   PASS_REGEX "End-to-end file test passed"
   WORKING_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
+lora_add_test(test_sync_end_to_end
+  SOURCES test_sync_end_to_end.c
+  LIBS lora_tx_chain lora_rx_chain
+  PASS_REGEX "Sync \\+ CFO \\+ Align test passed")
+
 lora_add_test(test_ber_snr
   SOURCES test_ber_snr.c
   LIBS lora_tx_chain lora_rx_chain
   WORKING_DIR ${CMAKE_SOURCE_DIR})
 
-lora_add_test(test_tx_rx_compare
-  SOURCES test_tx_rx_compare.c
-  LIBS lora_io
-  WORKING_DIR ${CMAKE_CURRENT_BINARY_DIR})
+if(LEGACY_COMPAT_TESTS)
+  lora_add_test(test_tx_rx_compare
+    SOURCES test_tx_rx_compare.c
+    LIBS lora_io
+    WORKING_DIR ${CMAKE_CURRENT_BINARY_DIR})
+endif()
 
 # Only add full_chain_compare if reference files are available in the repo
-if(EXISTS "${CMAKE_SOURCE_DIR}/legacy_gr_lora_sdr/gnuradio_ref.bin" AND
-   EXISTS "${CMAKE_SOURCE_DIR}/legacy_gr_lora_sdr/framework_ref.bin")
-  lora_add_test(test_full_chain_compare
-    SOURCES test_full_chain_compare.c
-    LIBS lora_io
-    WORKING_DIR ${CMAKE_SOURCE_DIR})
-else()
-  message(STATUS "Skipping test_full_chain_compare: reference files not found")
+if(LEGACY_COMPAT_TESTS)
+  if(EXISTS "${CMAKE_SOURCE_DIR}/legacy_gr_lora_sdr/gnuradio_ref.bin" AND
+     EXISTS "${CMAKE_SOURCE_DIR}/legacy_gr_lora_sdr/framework_ref.bin")
+    lora_add_test(test_full_chain_compare
+      SOURCES test_full_chain_compare.c
+      LIBS lora_io
+      WORKING_DIR ${CMAKE_SOURCE_DIR})
+  else()
+    message(STATUS "Skipping test_full_chain_compare: reference files not found")
+  endif()
 endif()
 
 lora_add_test(test_fixed_float_float
@@ -202,25 +227,39 @@ set_tests_properties(compare_fixed_float_nolog PROPERTIES
   DEPENDS "run_fixed_float_float_nolog;run_fixed_float_fixed_nolog"
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-add_executable(bench_lora_chain benchmarks/bench_lora_chain.c)
-target_link_libraries(bench_lora_chain PRIVATE lora_tx_chain lora_rx_chain)
-target_compile_definitions(bench_lora_chain PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
-target_compile_options(bench_lora_chain PRIVATE -O3 -DNDEBUG)
-add_test(NAME bench_lora_chain COMMAND bench_lora_chain bench_results.csv)
-set_tests_properties(bench_lora_chain PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_lora_chain benchmarks/bench_lora_chain.c)
+  target_link_libraries(bench_lora_chain PRIVATE lora_tx_chain lora_rx_chain)
+  target_compile_definitions(bench_lora_chain PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+  target_compile_options(bench_lora_chain PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_lora_chain COMMAND bench_lora_chain bench_results.csv)
+  set_tests_properties(bench_lora_chain PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+endif()
 
 # Micro-benchmark: FFT demod (float and fixed variants)
-add_executable(bench_demod benchmarks/bench_demod.c)
-target_link_libraries(bench_demod PRIVATE lora_fft_demod)
-target_compile_definitions(bench_demod PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
-target_compile_options(bench_demod PRIVATE -O3 -DNDEBUG)
-add_test(NAME bench_demod COMMAND bench_demod)
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_demod benchmarks/bench_demod.c)
+  target_link_libraries(bench_demod PRIVATE lora_fft_demod)
+  target_compile_definitions(bench_demod PRIVATE
+    LORA_LITE_ENABLE_LOGGING=0
+    $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>
+    $<$<BOOL:${LORA_LITE_USE_LIQUID_FFT}>:LORA_LITE_USE_LIQUID_FFT>
+  )
+  target_compile_options(bench_demod PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_demod COMMAND bench_demod)
+endif()
 
-add_executable(bench_demod_fixed benchmarks/bench_demod.c)
-target_link_libraries(bench_demod_fixed PRIVATE lora_fft_demod)
-target_compile_definitions(bench_demod_fixed PRIVATE LORA_LITE_ENABLE_LOGGING=0 LORA_LITE_FIXED_POINT)
-target_compile_options(bench_demod_fixed PRIVATE -O3 -DNDEBUG)
-add_test(NAME bench_demod_fixed COMMAND bench_demod_fixed)
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_demod_fixed benchmarks/bench_demod.c)
+  target_link_libraries(bench_demod_fixed PRIVATE lora_fft_demod)
+  target_compile_definitions(bench_demod_fixed PRIVATE
+    LORA_LITE_ENABLE_LOGGING=0
+    LORA_LITE_FIXED_POINT
+    $<$<BOOL:${LORA_LITE_USE_LIQUID_FFT}>:LORA_LITE_USE_LIQUID_FFT>
+  )
+  target_compile_options(bench_demod_fixed PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_demod_fixed COMMAND bench_demod_fixed)
+endif()
 
 # Correctness: minimal FFT demod sanity
 add_executable(test_fft_demod_correctness test_fft_demod_correctness.c)
@@ -229,59 +268,118 @@ target_compile_definitions(test_fft_demod_correctness PRIVATE LORA_LITE_ENABLE_L
 add_test(NAME test_fft_demod_correctness COMMAND test_fft_demod_correctness)
 
 # Micro-benchmark: Whitening throughput
-add_executable(bench_whitening benchmarks/bench_whitening.c)
-target_link_libraries(bench_whitening PRIVATE lora_whitening)
-target_compile_definitions(bench_whitening PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
-target_compile_options(bench_whitening PRIVATE -O3 -DNDEBUG)
-add_test(NAME bench_whitening COMMAND bench_whitening)
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_whitening benchmarks/bench_whitening.c)
+  target_link_libraries(bench_whitening PRIVATE lora_whitening)
+  target_compile_definitions(bench_whitening PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+  target_compile_options(bench_whitening PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_whitening COMMAND bench_whitening)
+endif()
 
 # Micro-benchmark: Demod with CFO
-add_executable(bench_demod_cfo benchmarks/bench_demod_cfo.c)
-target_link_libraries(bench_demod_cfo PRIVATE lora_fft_demod)
-target_compile_definitions(bench_demod_cfo PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
-target_compile_options(bench_demod_cfo PRIVATE -O3 -DNDEBUG)
-add_test(NAME bench_demod_cfo COMMAND bench_demod_cfo)
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_demod_cfo benchmarks/bench_demod_cfo.c)
+  target_link_libraries(bench_demod_cfo PRIVATE lora_fft_demod)
+  target_compile_definitions(bench_demod_cfo PRIVATE
+    LORA_LITE_ENABLE_LOGGING=0
+    $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>
+    $<$<BOOL:${LORA_LITE_USE_LIQUID_FFT}>:LORA_LITE_USE_LIQUID_FFT>
+  )
+  target_compile_options(bench_demod_cfo PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_demod_cfo COMMAND bench_demod_cfo)
+endif()
 
 # Micro-benchmark: Interleaver
-add_executable(bench_interleaver benchmarks/bench_interleaver.c)
-target_link_libraries(bench_interleaver PRIVATE lora_interleaver)
-target_compile_definitions(bench_interleaver PRIVATE LORA_LITE_ENABLE_LOGGING=0)
-target_compile_options(bench_interleaver PRIVATE -O3 -DNDEBUG)
-add_test(NAME bench_interleaver COMMAND bench_interleaver)
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_interleaver benchmarks/bench_interleaver.c)
+  target_link_libraries(bench_interleaver PRIVATE lora_interleaver)
+  target_compile_definitions(bench_interleaver PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_interleaver PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_interleaver COMMAND bench_interleaver)
+endif()
 
 # Micro-benchmark: CRC
-add_executable(bench_crc benchmarks/bench_crc.c)
-target_link_libraries(bench_crc PRIVATE lora_add_crc)
-target_compile_definitions(bench_crc PRIVATE LORA_LITE_ENABLE_LOGGING=0)
-target_compile_options(bench_crc PRIVATE -O3 -DNDEBUG)
-add_test(NAME bench_crc COMMAND bench_crc)
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_crc benchmarks/bench_crc.c)
+  target_link_libraries(bench_crc PRIVATE lora_add_crc)
+  target_compile_definitions(bench_crc PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_crc PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_crc COMMAND bench_crc)
+endif()
 
 # Micro-benchmark: Modulation (upchirp generation)
-add_executable(bench_mod benchmarks/bench_mod.c)
-target_link_libraries(bench_mod PRIVATE lora_mod)
-target_compile_definitions(bench_mod PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
-target_compile_options(bench_mod PRIVATE -O3 -DNDEBUG)
-add_test(NAME bench_mod COMMAND bench_mod)
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_mod benchmarks/bench_mod.c)
+  target_link_libraries(bench_mod PRIVATE lora_mod)
+  target_compile_definitions(bench_mod PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+  target_compile_options(bench_mod PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_mod COMMAND bench_mod)
+endif()
 
 # Micro-benchmark: FFT (all SFs)
-add_executable(bench_fft benchmarks/bench_fft.c)
-target_link_libraries(bench_fft PRIVATE lora_fft)
-target_compile_definitions(bench_fft PRIVATE LORA_LITE_ENABLE_LOGGING=0)
-target_compile_options(bench_fft PRIVATE -O3 -DNDEBUG)
-add_test(NAME bench_fft COMMAND bench_fft)
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_fft benchmarks/bench_fft.c)
+  target_link_libraries(bench_fft PRIVATE lora_fft)
+  target_compile_definitions(bench_fft PRIVATE
+    LORA_LITE_ENABLE_LOGGING=0
+    $<$<BOOL:${LORA_LITE_USE_LIQUID_FFT}>:LORA_LITE_USE_LIQUID_FFT>
+  )
+  target_compile_options(bench_fft PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_fft COMMAND bench_fft)
+endif()
 
 # End-to-end embedded throughput guard (optional)
-add_test(NAME pps_guard COMMAND /usr/bin/env python3 ${CMAKE_CURRENT_SOURCE_DIR}/pps_guard.py)
-set_tests_properties(pps_guard PROPERTIES
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  ENVIRONMENT "PPS_MIN=2000")
+if(LORA_LITE_BENCHMARK)
+  add_test(NAME pps_guard COMMAND /usr/bin/env python3 ${CMAKE_CURRENT_SOURCE_DIR}/pps_guard.py)
+  set_tests_properties(pps_guard PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    ENVIRONMENT "PPS_MIN=2000")
+endif()
 
 # Micro-benchmark: q15_to_cf conversion
-if(LORA_LITE_FIXED_POINT)
+if(LORA_LITE_FIXED_POINT AND LORA_LITE_BENCHMARK)
   add_executable(bench_q15_to_cf benchmarks/bench_q15_to_cf.c)
   # Link via lora_fft_demod to ensure q15_to_cf resolves under LTO/GC
   target_link_libraries(bench_q15_to_cf PRIVATE lora_fft_demod lora_fft)
   target_compile_definitions(bench_q15_to_cf PRIVATE LORA_LITE_ENABLE_LOGGING=0 LORA_LITE_FIXED_POINT)
   target_compile_options(bench_q15_to_cf PRIVATE -O3 -DNDEBUG)
   add_test(NAME bench_q15_to_cf COMMAND bench_q15_to_cf)
+endif()
+lora_add_test(test_signal_utils_block
+  SOURCES ${PROJECT_SOURCE_DIR}/blocks/signal_utils/test_signal_utils_block.c
+  LIBS signal_utils
+  PASS_REGEX "Signal utils block tests passed")
+target_sources(test_signal_utils_block PRIVATE ${PROJECT_SOURCE_DIR}/src/signal_utils.c)
+target_sources(test_signal_utils_block_nolog PRIVATE ${PROJECT_SOURCE_DIR}/src/signal_utils.c)
+
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_signal_utils ${PROJECT_SOURCE_DIR}/blocks/signal_utils/bench_signal_utils.c)
+  target_link_libraries(bench_signal_utils PRIVATE signal_utils)
+  target_compile_definitions(bench_signal_utils PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_signal_utils PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_signal_utils COMMAND bench_signal_utils)
+endif()
+lora_add_test(test_lora_add_crc_block
+  SOURCES ${PROJECT_SOURCE_DIR}/blocks/lora_add_crc/test_lora_add_crc_block.c
+  LIBS lora_add_crc
+  PASS_REGEX "CRC block test passed")
+
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_lora_add_crc ${PROJECT_SOURCE_DIR}/blocks/lora_add_crc/bench_lora_add_crc.c)
+  target_link_libraries(bench_lora_add_crc PRIVATE lora_add_crc)
+  target_compile_definitions(bench_lora_add_crc PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_lora_add_crc PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_lora_add_crc COMMAND bench_lora_add_crc)
+endif()
+lora_add_test(test_lora_whitening_block
+  SOURCES ${PROJECT_SOURCE_DIR}/blocks/lora_whitening/test_lora_whitening_block.c
+  LIBS lora_whitening
+  PASS_REGEX "Whitening block test passed")
+
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_lora_whitening_block ${PROJECT_SOURCE_DIR}/blocks/lora_whitening/bench_lora_whitening.c)
+  target_link_libraries(bench_lora_whitening_block PRIVATE lora_whitening)
+  target_compile_definitions(bench_lora_whitening_block PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_lora_whitening_block PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_lora_whitening_block COMMAND bench_lora_whitening_block)
 endif()

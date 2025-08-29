@@ -105,6 +105,9 @@ target_include_directories(lora_rx_chain PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include/lora_lite>)
 target_link_libraries(lora_rx_chain PUBLIC lora_add_crc lora_whitening lora_fft_demod m)
+target_sources(lora_rx_chain PRIVATE lora_frame_sync.c)
+set_target_properties(lora_rx_chain PROPERTIES BUILD_RPATH "$ORIGIN")
+target_link_options(lora_rx_chain PRIVATE -Wl,-rpath,'$ORIGIN')
 
 add_executable(lora_chain_runner lora_chain_runner.c)
 target_link_libraries(lora_chain_runner PRIVATE lora_tx_chain lora_rx_chain lora_io m)
@@ -140,6 +143,7 @@ set(LORA_LITE_TARGETS ${LORA_LITE_LIBS} ${LORA_LITE_EXES})
 foreach(t ${LORA_LITE_TARGETS})
   target_compile_definitions(${t} PRIVATE
     $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>
+    $<$<BOOL:${LORA_LITE_USE_LIQUID_FFT}>:LORA_LITE_USE_LIQUID_FFT>
     LORA_LITE_ENABLE_LOGGING=$<IF:$<BOOL:${LORA_LITE_ENABLE_LOGGING}>,1,0>)
 endforeach()
 

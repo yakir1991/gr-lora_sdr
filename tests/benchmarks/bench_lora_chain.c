@@ -61,7 +61,12 @@ int main(int argc, char **argv)
                 csv_path, cwd, strerror(errno));
         return 255;
     }
-    fprintf(csv, "cycles,bytes_allocated,packets_per_sec\n");
+    fprintf(csv, "metric,value\n");
+#ifdef LORA_LITE_USE_LIQUID_FFT
+    fprintf(csv, "fft_backend,liquid\n");
+#else
+    fprintf(csv, "fft_backend,kiss\n");
+#endif
 
     size_t peak_bytes = 0;
     uint64_t start = now_ns();
@@ -115,7 +120,9 @@ int main(int argc, char **argv)
 
     uint64_t cycles = end - start;
     double pps = (double)ITERATIONS * 1e9 / (double)cycles;
-    fprintf(csv, "%llu,%zu,%.3f\n", (unsigned long long)cycles, peak_bytes, pps);
+    fprintf(csv, "cycles,%llu\n", (unsigned long long)cycles);
+    fprintf(csv, "bytes_allocated,%zu\n", peak_bytes);
+    fprintf(csv, "packets_per_sec,%.3f\n", pps);
     fclose(csv);
 
     printf("cycles=%llu, peak_bytes=%zu, packets_per_sec=%.3f\n",
