@@ -192,7 +192,7 @@ void lora_fft_demod(lora_fft_demod_ctx_t *ctx,
   uint32_t os_factor = ctx->os_factor;
   float complex *restrict downchirp = ctx->downchirp;
   float complex *restrict fft_in = ctx->fft_in;
-  float complex *restrict fft_out = ctx->fft_out;
+  float complex *restrict fft_out = ctx->fft_out; /* legacy alias; may bypass below */
 
 #ifdef LORA_LITE_FIXED_POINT
   _Alignas(32) float complex tmp[LORA_MAX_SPS];
@@ -238,12 +238,14 @@ void lora_fft_demod(lora_fft_demod_ctx_t *ctx,
       /* Convert FFT output to float for magnitude search */
       q15_to_cf(fft_out, ctx->bins_q15, n_bins);
 #else
-      lora_fft_exec_fwd(&ctx->fft, fft_in, fft_out);
+      /* Avoid final copy inside FFT by writing into ctx->fft.work directly */
+      lora_fft_exec_fwd(&ctx->fft, fft_in, ctx->fft.work);
 #endif
+      const float complex *restrict spec = ctx->fft.work;
       float max_mag = 0.0f;
       uint32_t max_idx = 0;
       for (uint32_t i = 0; i < n_bins; ++i) {
-        float complex v = fft_out[i];
+        float complex v = spec[i];
         float mag = crealf(v) * crealf(v) + cimagf(v) * cimagf(v);
         if (mag > max_mag) {
           max_mag = mag;
@@ -298,7 +300,7 @@ void lora_fft_demod(lora_fft_demod_ctx_t *ctx,
     /* CFO present: rotate each chip by the evolving phase. */
 #if !defined(LORA_LITE_FIXED_POINT)
     dechirp_and_accumulate(sc, downchirp, n_bins, os_factor, fft_in, 1, &phase, step);
-    lora_fft_exec_fwd(&ctx->fft, fft_in, fft_out);
+    lora_fft_exec_fwd(&ctx->fft, fft_in, ctx->fft.work);
 #else
     /* Fixed-point path already filled ctx->bins_q15 with dechirped accumulations. */
 #  if defined(LORA_LITE_USE_CMSIS)
@@ -307,13 +309,14 @@ void lora_fft_demod(lora_fft_demod_ctx_t *ctx,
 #  else
     /* Fallback: convert to float then run float FFT */
     q15_to_cf(fft_in, ctx->bins_q15, n_bins);
-    lora_fft_exec_fwd(&ctx->fft, fft_in, fft_out);
+    lora_fft_exec_fwd(&ctx->fft, fft_in, ctx->fft.work);
 #  endif
 #endif
+    const float complex *restrict spec = ctx->fft.work;
     float max_mag = 0.0f;
     uint32_t max_idx = 0;
     for (uint32_t i = 0; i < n_bins; ++i) {
-      float complex v = fft_out[i];
+      float complex v = spec[i];
       float mag = crealf(v) * crealf(v) + cimagf(v) * cimagf(v);
       if (mag > max_mag) {
         max_mag = mag;

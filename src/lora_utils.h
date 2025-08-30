@@ -12,6 +12,12 @@
 extern const uint8_t *lora_whitening_seq;
 void lora_generate_whitening_seq(uint8_t *seq);
 
+/* Optional byte-chunk whitening LUTs (enabled in lora_utils.c unconditionally).
+ * Each entry encodes 8 successive whitening bytes starting from LFSR state 's',
+ * and the resulting state after 8 steps. */
+extern const uint64_t *lora_whiten_lut8; /* masks[256] */
+extern const uint8_t  *lora_whiten_next8; /* next_state[256] */
+
 void lora_build_upchirp(float complex *restrict chirp, uint32_t id, uint8_t sf,
                         uint32_t os_factor);
 void lora_build_ref_chirps(float complex *restrict upchirp,

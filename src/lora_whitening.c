@@ -11,6 +11,27 @@
 void lora_whiten(const uint8_t *restrict in, uint8_t *restrict out, size_t len)
 {
     size_t i = 0;
+#if defined(LORA_LITE_WHITEN_LUT8)
+    /* On-the-fly whitening using 8-byte LUT chunks; avoids reading seq memory. */
+    uint8_t lfsr = 0xFFu; /* LoRa whitening seed */
+    /* Process 8-byte chunks */
+    for (; i + 8 <= len; i += 8) {
+        uint64_t a64;
+        __builtin_memcpy(&a64, in + i, 8);
+        uint64_t m64 = lora_whiten_lut8[lfsr];
+        a64 ^= m64;
+        __builtin_memcpy(out + i, &a64, 8);
+        lfsr = lora_whiten_next8[lfsr];
+    }
+    /* Tail bytes */
+    while (i < len) {
+        out[i] = (uint8_t)(in[i] ^ lfsr);
+        uint8_t new_bit = ((lfsr >> 7) ^ (lfsr >> 5) ^ (lfsr >> 4) ^ (lfsr >> 3)) & 0x01u;
+        lfsr = (uint8_t)((lfsr << 1) | new_bit);
+        ++i;
+    }
+    return;
+#else
     size_t seq_idx = 0;
     while (i < len) {
         size_t chunk = LORA_WHITENING_SEQ_LEN - seq_idx;
@@ -118,6 +139,7 @@ void lora_whiten(const uint8_t *restrict in, uint8_t *restrict out, size_t len)
         seq_idx += chunk;
         if (seq_idx == LORA_WHITENING_SEQ_LEN) seq_idx = 0;
     }
+#endif
 }
 
 void lora_dewhiten(const uint8_t *restrict in, uint8_t *restrict out, size_t len)

@@ -108,6 +108,12 @@ lora_add_test(test_lora_graymap
   LIBS lora_graymap
   PASS_REGEX "Gray map test passed")
 
+# FFT round-trip unit test (float path)
+lora_add_test(test_fft_roundtrip
+  SOURCES test_fft_roundtrip.c
+  LIBS lora_fft
+  PASS_REGEX "FFT round-trip test passed")
+
 lora_add_test(test_gray_golden
   SOURCES test_gray_golden.c
   LIBS lora_graymap
@@ -277,6 +283,15 @@ if(LORA_LITE_BENCHMARK)
   target_compile_definitions(bench_whitening PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
   target_compile_options(bench_whitening PRIVATE -O3 -DNDEBUG)
   add_test(NAME bench_whitening COMMAND bench_whitening)
+endif()
+
+# Micro-benchmark: Gray map/demap
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_graymap benchmarks/bench_graymap.c)
+  target_link_libraries(bench_graymap PRIVATE lora_graymap)
+  target_compile_definitions(bench_graymap PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_graymap PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_graymap COMMAND bench_graymap)
 endif()
 
 # Micro-benchmark: Demod with CFO

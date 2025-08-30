@@ -51,28 +51,27 @@ uint8_t lora_hamming_decode(uint8_t codeword, uint8_t cr)
     }
 
     if (cr >= 3) {
+        /* Branchless correction via 3-bit syndrome lookup.
+         * Mapping derived from parity equations:
+         *   synd==5 -> d0, 7 -> d1, 3 -> d2, 6 -> d3; others: no data flip. */
         uint8_t s0 = d0 ^ d1 ^ d2 ^ p0;
         uint8_t s1 = d1 ^ d2 ^ d3 ^ p1;
         uint8_t s2 = d0 ^ d1 ^ d3 ^ p2;
-        uint8_t synd = s0 | (s1 << 1) | (s2 << 2);
-        switch (synd) {
-        case 5:
-            d0 ^= 1u;
-            break;
-        case 7:
-            d1 ^= 1u;
-            break;
-        case 3:
-            d2 ^= 1u;
-            break;
-        case 6:
-            d3 ^= 1u;
-            break;
-        default:
-            break;
+        uint8_t synd = (uint8_t)(s0 | (s1 << 1) | (s2 << 2));
+        static const uint8_t fix_idx[8] = {
+            0xFF, /*0*/ 0xFF, /*1*/ 0xFF, /*2*/ 2,    /*3->d2*/
+            0xFF, /*4*/ 0,    /*5->d0*/ 3,    /*6->d3*/ 1     /*7->d1*/
+        };
+        uint8_t idx = fix_idx[synd];
+        if (idx != 0xFF) {
+            switch (idx) {
+                case 0: d0 ^= 1u; break;
+                case 1: d1 ^= 1u; break;
+                case 2: d2 ^= 1u; break;
+                case 3: d3 ^= 1u; break;
+            }
         }
     }
 
     return (d3 << 3) | (d2 << 2) | (d1 << 1) | d0;
 }
-

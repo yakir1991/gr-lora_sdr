@@ -4,6 +4,10 @@
 
 static uint8_t lora_whitening_seq_buf[LORA_WHITENING_SEQ_LEN];
 const uint8_t *lora_whitening_seq = lora_whitening_seq_buf;
+static uint64_t lora_whiten_lut8_buf[256];
+static uint8_t  lora_whiten_next8_buf[256];
+const uint64_t *lora_whiten_lut8 = lora_whiten_lut8_buf;
+const uint8_t  *lora_whiten_next8 = lora_whiten_next8_buf;
 
 void lora_generate_whitening_seq(uint8_t *seq) {
   /* LFSR with polynomial x^8 + x^6 + x^5 + x^4 + 1 */
@@ -18,6 +22,20 @@ void lora_generate_whitening_seq(uint8_t *seq) {
 
 __attribute__((constructor)) static void lora_whitening_seq_init(void) {
   lora_generate_whitening_seq(lora_whitening_seq_buf);
+  /* Build 8-byte chunk LUTs for whitening */
+  for (int s = 0; s < 256; ++s) {
+    uint8_t lfsr = (uint8_t)s;
+    uint8_t bytes[8];
+    for (int i = 0; i < 8; ++i) {
+      bytes[i] = lfsr;
+      uint8_t new_bit = ((lfsr >> 7) ^ (lfsr >> 5) ^ (lfsr >> 4) ^ (lfsr >> 3)) & 0x01u;
+      lfsr = (uint8_t)((lfsr << 1) | new_bit);
+    }
+    uint64_t mask = 0;
+    __builtin_memcpy(&mask, bytes, 8);
+    lora_whiten_lut8_buf[s] = mask;
+    lora_whiten_next8_buf[s] = lfsr;
+  }
 }
 
 void lora_build_upchirp(float complex *restrict chirp, uint32_t id, uint8_t sf,
