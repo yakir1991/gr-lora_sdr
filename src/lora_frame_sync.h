@@ -51,6 +51,56 @@ size_t lora_frame_sync_align(const uint32_t *symbols,
                              uint16_t preamble_len,
                              uint32_t *aligned);
 
+/* Lightweight variant: compute offset after preamble without copying.
+ * Returns the number of symbols after the preamble (nsym - *offset_out) and
+ * writes the start offset into '*offset_out'. If no preamble is found,
+ * returns 0 and '*offset_out' is set to nsym.
+ */
+size_t lora_frame_sync_align_offset(const uint32_t *symbols,
+                                    size_t nsym,
+                                    uint16_t preamble_len,
+                                    size_t *offset_out);
+
+/* Optional analysis helpers to gauge sync quality */
+typedef struct {
+  size_t preamble_start;   /* first index of preamble-like run */
+  size_t preamble_end;     /* index after preamble-like run */
+  size_t sfd_end;          /* index after SFD window if detected */
+  uint8_t preamble_match_pct; /* 0..100: % of preamble-like within [start,end) */
+  uint8_t sfd_nonzero;        /* count of nonzero-like in SFD window */
+} lora_fs_metrics;
+
+/* Analyze preamble/SFD and fill metrics; returns sfd_end (or preamble_end if no SFD). */
+size_t lora_frame_sync_analyze(const uint32_t *symbols,
+                               size_t nsym,
+                               uint16_t preamble_len,
+                               uint8_t sfd_len,
+                               uint8_t lookahead,
+                               lora_fs_metrics *out);
+
+/* Tunable configuration and helpers */
+typedef struct {
+  uint8_t tol_bin;          /* treat 0..tol_bin as preamble-like */
+  uint8_t min_match_pct;    /* % matches required in window (ceil) */
+  uint8_t sfd_len;          /* SFD window length */
+  uint8_t sfd_min_nonzero;  /* nonzero count required in SFD window */
+  uint8_t lookahead;        /* how far to slide SFD window */
+} lora_fs_cfg;
+
+/* Recommend reasonable defaults per SF/BW (simple heuristic) */
+void lora_frame_sync_recommend(uint8_t sf, uint32_t bw, lora_fs_cfg *out);
+
+/* Configurable variants (use cfg fields instead of compile-time macros) */
+size_t lora_frame_sync_find_preamble_cfg(const uint32_t *symbols,
+                                         size_t nsym,
+                                         uint16_t preamble_len,
+                                         const lora_fs_cfg *cfg);
+
+size_t lora_frame_sync_find_sfd_cfg(const uint32_t *symbols,
+                                    size_t nsym,
+                                    size_t preamble_end,
+                                    const lora_fs_cfg *cfg);
+
 #ifdef __cplusplus
 }
 #endif

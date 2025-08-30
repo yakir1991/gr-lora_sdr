@@ -130,14 +130,11 @@ int lora_fft_demod_init(lora_fft_demod_ctx_t *ctx, uint8_t sf, uint32_t fs,
 
 #ifdef LORA_LITE_FIXED_POINT
   /* Quantize downchirp to Q15 once to avoid per-symbol q15->float conversion */
-  const float scale = 32767.0f;
   for (uint32_t n = 0; n < sps; ++n) {
     float re = crealf(ctx->downchirp[n]);
     float im = cimagf(ctx->downchirp[n]);
-    int16_t qr = (int16_t)(re * scale + (re >= 0 ? 0.5f : -0.5f));
-    int16_t qi = (int16_t)(im * scale + (im >= 0 ? 0.5f : -0.5f));
-    ctx->downchirp_q15[n].r = qr;
-    ctx->downchirp_q15[n].i = qi;
+    ctx->downchirp_q15[n].r = liquid_float_to_fixed(re);
+    ctx->downchirp_q15[n].i = liquid_float_to_fixed(im);
   }
 #endif
 

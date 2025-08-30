@@ -11,6 +11,18 @@ lora_status lora_tx_chain(const uint8_t *restrict payload, size_t payload_len,
                           float complex *restrict chips, size_t chips_buf_len,
                           size_t *restrict nchips_out,
                           const lora_chain_cfg *cfg,
+                          lora_tx_workspace *ws);
+
+size_t lora_tx_workspace_bytes(const lora_chain_cfg *cfg)
+{
+    (void)cfg; /* current workspace size is configuration-independent */
+    return sizeof(lora_tx_workspace);
+}
+
+lora_status lora_tx_chain(const uint8_t *restrict payload, size_t payload_len,
+                          float complex *restrict chips, size_t chips_buf_len,
+                          size_t *restrict nchips_out,
+                          const lora_chain_cfg *cfg,
                           lora_tx_workspace *ws)
 {
     if (!payload || !chips || !nchips_out || chips_buf_len == 0 || !cfg || !ws)
@@ -59,10 +71,14 @@ lora_status lora_tx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg
 {
     if (!in || !out || !cfg)
         return LORA_ERR_INVALID_ARG;
-
+#if defined(LORA_LITE_NO_MALLOC)
+    /* Embedded path: no dynamic allocation; use static buffers */
+    static uint8_t payload[LORA_MAX_PAYLOAD_LEN];
+#else
     uint8_t *payload = malloc(LORA_MAX_PAYLOAD_LEN);
     if (!payload)
         return LORA_ERR_OOM;
+#endif
     size_t total = 0;
     while (total < LORA_MAX_PAYLOAD_LEN) {
         size_t n = in->read(in->ctx, payload + total, LORA_MAX_PAYLOAD_LEN - total);
@@ -71,23 +87,32 @@ lora_status lora_tx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg
         total += n;
     }
 
+#if defined(LORA_LITE_NO_MALLOC)
+    static float complex chips[LORA_MAX_CHIPS];
+    static lora_tx_workspace ws;
+#else
     float complex *chips = malloc(sizeof(float complex) * LORA_MAX_CHIPS);
     if (!chips) {
         free(payload);
         return LORA_ERR_OOM;
     }
-    size_t nchips;
-    static lora_tx_workspace ws;
+    lora_tx_workspace ws; /* automatic workspace sufficient for host path */
+#endif
+    size_t nchips = 0;
     lora_status st = lora_tx_chain(payload, total, chips, LORA_MAX_CHIPS, &nchips, cfg, &ws);
     if (st != LORA_OK) {
+#if !defined(LORA_LITE_NO_MALLOC)
         free(payload);
         free(chips);
+#endif
         return st;
     }
 
     size_t bytes = nchips * sizeof(float complex);
     size_t wr = out->write(out->ctx, (const uint8_t *)chips, bytes);
+#if !defined(LORA_LITE_NO_MALLOC)
     free(payload);
     free(chips);
+#endif
     return (wr == bytes) ? LORA_OK : LORA_ERR_IO;
 }

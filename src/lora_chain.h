@@ -78,5 +78,8 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
 /* Helper: bytes required for FFT demod workspace for the given config. */
 size_t lora_rx_fft_workspace_bytes(const lora_chain_cfg *cfg);
 
+/* Helper: bytes required for TX workspace (constant for current layout). */
+size_t lora_tx_workspace_bytes(const lora_chain_cfg *cfg);
+
 lora_status lora_tx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);
 lora_status lora_rx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg);

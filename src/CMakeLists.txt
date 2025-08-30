@@ -161,8 +161,13 @@ foreach(t ${LORA_LITE_TARGETS})
     $<$<BOOL:${LORA_LITE_NEON}>:LORA_LITE_NEON>
     $<$<BOOL:${LORA_LITE_EMB_THROUGHPUT}>:LORA_LITE_EMB_THROUGHPUT>
     $<$<BOOL:${LORA_LITE_WHITEN_LUT8}>:LORA_LITE_WHITEN_LUT8>
+    $<$<BOOL:${LORA_LITE_NO_MALLOC}>:LORA_LITE_NO_MALLOC>
     LORA_LITE_ENABLE_LOGGING=$<IF:$<BOOL:${LORA_LITE_ENABLE_LOGGING}>,1,0>)
 endforeach()
+
+# Ensure critical chain libraries also get no-malloc definition even if not in LORA_LITE_TARGETS list
+target_compile_definitions(lora_tx_chain PRIVATE $<$<BOOL:${LORA_LITE_NO_MALLOC}>:LORA_LITE_NO_MALLOC>)
+target_compile_definitions(lora_rx_chain PRIVATE $<$<BOOL:${LORA_LITE_NO_MALLOC}>:LORA_LITE_NO_MALLOC>)
 
 install(TARGETS ${LORA_LITE_LIBS}
         EXPORT lora_liteTargets

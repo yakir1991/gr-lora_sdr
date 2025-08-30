@@ -47,8 +47,7 @@ void lora_modulate(const uint32_t *restrict symbols,
   if (sps > LORA_MAX_SPS)
     return;
 
-  const float q15_scale = 32767.0f;
-  const float q15_inv = 1.0f / 32767.0f;
+  const float q15_inv = 1.0f / LORA_Q15_SCALE_F;
 
   for (size_t s = 0; s < nsym; ++s) {
     uint32_t sym = symbols[s] & (n_bins - 1u);
@@ -57,8 +56,8 @@ void lora_modulate(const uint32_t *restrict symbols,
     for (uint32_t n = 0; n < sps; ++n) {
       float re = crealf(out[n]);
       float im = cimagf(out[n]);
-      int16_t qr = (int16_t)(re * q15_scale + (re >= 0 ? 0.5f : -0.5f));
-      int16_t qi = (int16_t)(im * q15_scale + (im >= 0 ? 0.5f : -0.5f));
+      int16_t qr = liquid_float_to_fixed(re);
+      int16_t qi = liquid_float_to_fixed(im);
       out[n] = (float)qr * q15_inv + I * (float)qi * q15_inv;
     }
   }

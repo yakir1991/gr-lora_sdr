@@ -155,7 +155,6 @@ lora_add_test(test_lora_chain_edge_cases
 lora_add_test(embedded_loopback
   SOURCES embedded_loopback.c
   LIBS lora_tx_chain lora_rx_chain
-  DEFINITIONS LORA_LITE_FIXED_POINT
   PASS_REGEX "Embedded loopback test passed")
 
 lora_add_test(test_end_to_end_file
@@ -285,6 +284,15 @@ if(LORA_LITE_BENCHMARK)
   add_test(NAME bench_whitening COMMAND bench_whitening)
 endif()
 
+# Embedded-profile whitening variants (seq vs LUT8 dyn vs LUT8 static)
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_whitening_emb_variants benchmarks/bench_whitening_emb_variants.c)
+  target_compile_definitions(bench_whitening_emb_variants PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_whitening_emb_variants PRIVATE -Os -flto -ffunction-sections -fdata-sections -DNDEBUG)
+  target_link_options(bench_whitening_emb_variants PRIVATE -Wl,--gc-sections)
+  add_test(NAME bench_whitening_emb_variants COMMAND bench_whitening_emb_variants)
+endif()
+
 # Micro-benchmark: Gray map/demap
 if(LORA_LITE_BENCHMARK)
   add_executable(bench_graymap benchmarks/bench_graymap.c)
@@ -300,6 +308,49 @@ if(LORA_LITE_BENCHMARK)
   target_compile_definitions(bench_header PRIVATE LORA_LITE_ENABLE_LOGGING=0)
   target_compile_options(bench_header PRIVATE -O3 -DNDEBUG)
   add_test(NAME bench_header COMMAND bench_header)
+endif()
+
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_frame_sync benchmarks/bench_frame_sync.c)
+  target_link_libraries(bench_frame_sync PRIVATE lora_frame_sync)
+  target_compile_definitions(bench_frame_sync PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_frame_sync PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_frame_sync COMMAND bench_frame_sync)
+endif()
+
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_full_frame benchmarks/bench_full_frame.c)
+  target_link_libraries(bench_full_frame PRIVATE lora_frame_sync lora_whitening lora_add_crc)
+  set_target_properties(bench_full_frame PROPERTIES BUILD_RPATH "${PROJECT_BINARY_DIR}/src")
+  target_link_options(bench_full_frame PRIVATE -Wl,-rpath,${PROJECT_BINARY_DIR}/src)
+  # Also ensure build-tree libs are preferred over user-installed copies
+  target_link_directories(bench_full_frame PRIVATE ${PROJECT_BINARY_DIR}/src)
+  target_compile_definitions(bench_full_frame PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_full_frame PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_full_frame COMMAND bench_full_frame)
+endif()
+
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_sfd benchmarks/bench_sfd.c)
+  target_link_libraries(bench_sfd PRIVATE lora_frame_sync)
+  target_compile_definitions(bench_sfd PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_sfd PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_sfd COMMAND bench_sfd)
+endif()
+
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_frame_sync_quality benchmarks/bench_frame_sync_quality.c)
+  target_link_libraries(bench_frame_sync_quality PRIVATE lora_frame_sync)
+  target_compile_definitions(bench_frame_sync_quality PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_frame_sync_quality PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_frame_sync_quality COMMAND bench_frame_sync_quality)
+endif()
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_frame_sync_presets benchmarks/bench_frame_sync_presets.c)
+  target_link_libraries(bench_frame_sync_presets PRIVATE lora_frame_sync)
+  target_compile_definitions(bench_frame_sync_presets PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_frame_sync_presets PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_frame_sync_presets COMMAND bench_frame_sync_presets)
 endif()
 
 if(LORA_LITE_BENCHMARK)
@@ -339,6 +390,16 @@ if(LORA_LITE_BENCHMARK)
   add_test(NAME bench_interleaver COMMAND bench_interleaver)
 endif()
 
+# Embedded-profile Interleaver bench
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_interleaver_emb benchmarks/bench_interleaver.c)
+  target_link_libraries(bench_interleaver_emb PRIVATE lora_interleaver)
+  target_compile_definitions(bench_interleaver_emb PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_interleaver_emb PRIVATE -Os -flto -ffunction-sections -fdata-sections -DNDEBUG)
+  target_link_options(bench_interleaver_emb PRIVATE -Wl,--gc-sections)
+  add_test(NAME bench_interleaver_emb COMMAND bench_interleaver_emb)
+endif()
+
 # Micro-benchmark: CRC
 if(LORA_LITE_BENCHMARK)
   add_executable(bench_crc benchmarks/bench_crc.c)
@@ -348,6 +409,52 @@ if(LORA_LITE_BENCHMARK)
   add_test(NAME bench_crc COMMAND bench_crc)
 endif()
 
+# Embedded-profile CRC bench
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_crc_emb benchmarks/bench_crc.c)
+  target_link_libraries(bench_crc_emb PRIVATE lora_add_crc)
+  target_compile_definitions(bench_crc_emb PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_crc_emb PRIVATE -Os -flto -ffunction-sections -fdata-sections -DNDEBUG)
+  target_link_options(bench_crc_emb PRIVATE -Wl,--gc-sections)
+  add_test(NAME bench_crc_emb COMMAND bench_crc_emb)
+endif()
+
+# RX bytes pipeline (dewhiten + CRC) benches
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_rx_bytes_pipeline benchmarks/bench_rx_bytes_pipeline.c)
+  target_link_libraries(bench_rx_bytes_pipeline PRIVATE lora_whitening lora_add_crc)
+  target_compile_definitions(bench_rx_bytes_pipeline PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_rx_bytes_pipeline PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_rx_bytes_pipeline COMMAND bench_rx_bytes_pipeline)
+endif()
+
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_rx_bytes_pipeline_emb benchmarks/bench_rx_bytes_pipeline.c)
+  target_link_libraries(bench_rx_bytes_pipeline_emb PRIVATE lora_whitening lora_add_crc)
+  target_compile_definitions(bench_rx_bytes_pipeline_emb PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_rx_bytes_pipeline_emb PRIVATE -Os -flto -ffunction-sections -fdata-sections -DNDEBUG)
+  target_link_options(bench_rx_bytes_pipeline_emb PRIVATE -Wl,--gc-sections)
+  add_test(NAME bench_rx_bytes_pipeline_emb COMMAND bench_rx_bytes_pipeline_emb)
+endif()
+
+# TX bytes pipeline (CRC + whiten) benches
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_tx_bytes_pipeline benchmarks/bench_tx_bytes_pipeline.c)
+  target_link_libraries(bench_tx_bytes_pipeline PRIVATE lora_whitening lora_add_crc)
+  target_compile_definitions(bench_tx_bytes_pipeline PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_tx_bytes_pipeline PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_tx_bytes_pipeline COMMAND bench_tx_bytes_pipeline)
+endif()
+
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_tx_bytes_pipeline_emb benchmarks/bench_tx_bytes_pipeline.c)
+  target_link_libraries(bench_tx_bytes_pipeline_emb PRIVATE lora_whitening lora_add_crc)
+  target_compile_definitions(bench_tx_bytes_pipeline_emb PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_tx_bytes_pipeline_emb PRIVATE -Os -flto -ffunction-sections -fdata-sections -DNDEBUG)
+  target_link_options(bench_tx_bytes_pipeline_emb PRIVATE -Wl,--gc-sections)
+  add_test(NAME bench_tx_bytes_pipeline_emb COMMAND bench_tx_bytes_pipeline_emb)
+endif()
+
 # Micro-benchmark: Modulation (upchirp generation)
 if(LORA_LITE_BENCHMARK)
   add_executable(bench_mod benchmarks/bench_mod.c)
@@ -355,6 +462,16 @@ if(LORA_LITE_BENCHMARK)
   target_compile_definitions(bench_mod PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
   target_compile_options(bench_mod PRIVATE -O3 -DNDEBUG)
   add_test(NAME bench_mod COMMAND bench_mod)
+endif()
+
+# Embedded-profile Mod bench
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_mod_emb benchmarks/bench_mod.c)
+  target_link_libraries(bench_mod_emb PRIVATE lora_mod)
+  target_compile_definitions(bench_mod_emb PRIVATE LORA_LITE_ENABLE_LOGGING=0 $<$<BOOL:${LORA_LITE_FIXED_POINT}>:LORA_LITE_FIXED_POINT>)
+  target_compile_options(bench_mod_emb PRIVATE -Os -flto -ffunction-sections -fdata-sections -DNDEBUG)
+  target_link_options(bench_mod_emb PRIVATE -Wl,--gc-sections)
+  add_test(NAME bench_mod_emb COMMAND bench_mod_emb)
 endif()
 
 # Micro-benchmark: FFT (all SFs)

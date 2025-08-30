@@ -9,18 +9,24 @@
 typedef int16_t q15;
 #endif
 
+/* Unified Q15 scaling constants for consistent rounding/clamping across modules */
+#define LORA_Q15_MAX_I      32767
+#define LORA_Q15_MIN_I     -32768
+#define LORA_Q15_SCALE_F    32767.0f
+#define LORA_Q15_CLAMP_MAX  0.999969f /* (LORA_Q15_MAX_I / LORA_Q15_SCALE_F) */
+
 static inline __attribute__((always_inline)) q15
 liquid_float_to_fixed(float x) {
-  if (x > 0.999969f)
-    x = 0.999969f;
+  if (x > LORA_Q15_CLAMP_MAX)
+    x = LORA_Q15_CLAMP_MAX;
   if (x < -1.0f)
     x = -1.0f;
-  return (q15)(x * 32767.0f + (x >= 0 ? 0.5f : -0.5f));
+  return (q15)(x * LORA_Q15_SCALE_F + (x >= 0 ? 0.5f : -0.5f));
 }
 
 static inline __attribute__((always_inline)) float
 liquid_fixed_to_float(q15 x) {
-  return (float)x / 32767.0f;
+  return (float)x / LORA_Q15_SCALE_F;
 }
 
 typedef struct {

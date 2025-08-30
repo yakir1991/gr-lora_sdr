@@ -23,6 +23,19 @@ int main(void)
 
     static uint8_t out[LORA_MAX_PAYLOAD_LEN];
     static lora_rx_workspace rx_ws;
+    if (!rx_ws.fft_ws) {
+        size_t need = lora_rx_fft_workspace_bytes(&cfg);
+        size_t need_al = (need + 31u) & ~((size_t)31u);
+        void *p = NULL;
+#if defined(_POSIX_C_SOURCE)
+        if (posix_memalign(&p, 32, need_al) != 0) p = NULL;
+#else
+        p = aligned_alloc(32, need_al);
+#endif
+        rx_ws.fft_ws = p;
+        rx_ws.fft_ws_size = rx_ws.fft_ws ? need_al : 0;
+        rx_ws.fft_inited = 0;
+    }
     size_t out_len = 0;
     lora_status rx_ret = lora_rx_chain(chips, nchips, out, sizeof(out), &out_len, &cfg, &rx_ws);
     if (rx_ret != LORA_OK) {
@@ -42,4 +55,3 @@ int main(void)
         return EXIT_FAILURE;
     }
 }
-

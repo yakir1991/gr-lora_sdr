@@ -64,20 +64,15 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
     for (; i < nlim; ++i) {
         float re = fin[2*i+0];
         float im = fin[2*i+1];
-        if (re > 0.999969f) re = 0.999969f; if (re < -1.0f) re = -1.0f;
-        if (im > 0.999969f) im = 0.999969f; if (im < -1.0f) im = -1.0f;
-        qchips[i].r = (int16_t)(re * 32767.0f + (re >= 0 ? 0.5f : -0.5f));
-        qchips[i].i = (int16_t)(im * 32767.0f + (im >= 0 ? 0.5f : -0.5f));
+        qchips[i].r = liquid_float_to_fixed(re);
+        qchips[i].i = liquid_float_to_fixed(im);
     }
 #else
-    const float q15_scale = 32767.0f;
     for (size_t i = 0; i < nlim; ++i) {
         float re = fin[2*i+0];
-        if (re > 0.999969f) re = 0.999969f; if (re < -1.0f) re = -1.0f;
         float im = fin[2*i+1];
-        if (im > 0.999969f) im = 0.999969f; if (im < -1.0f) im = -1.0f;
-        qchips[i].r = (int16_t)(re * q15_scale + (re >= 0 ? 0.5f : -0.5f));
-        qchips[i].i = (int16_t)(im * q15_scale + (im >= 0 ? 0.5f : -0.5f));
+        qchips[i].r = liquid_float_to_fixed(re);
+        qchips[i].i = liquid_float_to_fixed(im);
     }
 #endif
     const lora_q15_complex *chip_ptr = qchips;
@@ -91,6 +86,7 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
     /* Reuse persistent FFT demod workspace/context in ws. */
     if (!ws->fft_ws || ws->fft_ws_size < ws_bytes) {
 #ifdef LORA_LITE_NO_MALLOC
+        fprintf(stderr, "rx_chain: ws too small (need=%zu, have=%zu)\n", ws_bytes, ws->fft_ws_size);
         return LORA_ERR_BUFFER_TOO_SMALL;
 #else
         /* Fallback for host builds/tests: allocate on demand */
@@ -122,7 +118,12 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
     /* Estimate CFO from preamble region using dechirped phase slope. */
     const uint32_t sps_u = ws->fft_ctx.sps;
     const size_t sps_sz = (size_t)sps_u;
-    size_t preamble_end = lora_frame_sync_find_preamble(symbols, nsym, 8);
+    /* Use default preamble length for initial coarse sync */
+#ifndef LORA_FS_DEFAULT_PREAMBLE
+#define LORA_FS_DEFAULT_PREAMBLE 8
+#endif
+    const uint16_t fs_pre_len = (uint16_t)LORA_FS_DEFAULT_PREAMBLE;
+    size_t preamble_end = lora_frame_sync_find_preamble(symbols, nsym, fs_pre_len);
     ws->sync_preamble_end = preamble_end;
     ws->sync_preamble_start = preamble_end;
     ws->sync_cfo_hz = 0.0f;
@@ -182,12 +183,11 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
     }
 
     /* Frame alignment: trim preamble+SFD if present. */
-#ifndef LORA_FS_DEFAULT_PREAMBLE
-#define LORA_FS_DEFAULT_PREAMBLE 8
-#endif
     size_t sym_off = 0;
     {
-        size_t pre_end2 = lora_frame_sync_find_preamble(symbols, nsym, LORA_FS_DEFAULT_PREAMBLE);
+        size_t pre_start_off = nsym;
+        size_t pre_remaining = lora_frame_sync_align_offset(symbols, nsym, fs_pre_len, &pre_start_off);
+        size_t pre_end2 = (pre_remaining > 0) ? pre_start_off : nsym;
         if (pre_end2 < nsym) {
             size_t sfd_end = lora_frame_sync_find_sfd(symbols, nsym, pre_end2, 2, 4);
             ws->sync_sfd_end = sfd_end;

@@ -58,6 +58,17 @@ int main(void) {
     size_t nchips = 0, rx_len = 0;
     const lora_chain_cfg cfg = {.sf = 8, .bw = 125000, .samp_rate = 125000};
 
+    /* Ensure RX workspace prepared (no-malloc builds require it) */
+    static _Alignas(32) unsigned char rx_fft_ws_buf[16384];
+    size_t need = lora_rx_fft_workspace_bytes(&cfg);
+    if (need == 0 || need > sizeof(rx_fft_ws_buf)) {
+        fprintf(stderr, "Iteration 0: workspace too small (need=%zu, have=%zu)\n", need, sizeof(rx_fft_ws_buf));
+        return EXIT_FAILURE;
+    }
+    rx_ws.fft_ws = rx_fft_ws_buf;
+    rx_ws.fft_ws_size = sizeof(rx_fft_ws_buf);
+    rx_ws.fft_inited = 0;
+
     lora_status tx_ret = lora_tx_chain(payload, sizeof(payload), chips, LORA_MAX_CHIPS, &nchips, &cfg, &tx_ws);
     if (tx_ret != LORA_OK) {
         fprintf(stderr,
@@ -76,11 +87,14 @@ int main(void) {
             return EXIT_FAILURE;
         }
     }
+    /* rx_ws already initialised above */
+    fprintf(stderr, "debug: need=%zu ws=%p ws_size=%zu nchips=%zu\n",
+            lora_rx_fft_workspace_bytes(&cfg), rx_ws.fft_ws, rx_ws.fft_ws_size, nchips);
     lora_status rx_ret = lora_rx_chain(chips, nchips, rx, sizeof(rx), &rx_len, &cfg, &rx_ws);
     if (rx_ret != LORA_OK) {
         fprintf(stderr,
-                "Iteration 0: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu)\n",
-                (int)rx_ret, nchips, rx_len);
+                "Iteration 0: lora_rx_chain failed (ret=%d, nchips=%zu, out_len=%zu) need=%zu ws=%p ws_size=%zu\n",
+                (int)rx_ret, nchips, rx_len, lora_rx_fft_workspace_bytes(&cfg), rx_ws.fft_ws, rx_ws.fft_ws_size);
         return EXIT_FAILURE;
     }
     if (rx_len != sizeof(payload) || memcmp(rx, payload, sizeof(payload)) != 0) {

@@ -116,6 +116,19 @@ int main(void) {
         // Run full RX chain for side effects / sanity
         uint8_t tmp_payload[LORA_MAX_PAYLOAD_LEN];
         size_t tmp_len = 0;
+        if (!rx_ws.fft_ws) {
+            size_t need = lora_rx_fft_workspace_bytes(&cfg);
+            size_t need_al = (need + 31u) & ~((size_t)31u);
+            void *p = NULL;
+#if defined(_POSIX_C_SOURCE)
+            if (posix_memalign(&p, 32, need_al) != 0) p = NULL;
+#else
+            p = aligned_alloc(32, need_al);
+#endif
+            rx_ws.fft_ws = p;
+            rx_ws.fft_ws_size = rx_ws.fft_ws ? need_al : 0;
+            rx_ws.fft_inited = 0;
+        }
         lora_status rx_ret = lora_rx_chain(noisy, nchips, tmp_payload, sizeof(tmp_payload), &tmp_len, &cfg, &rx_ws);
         if (rx_ret != LORA_OK) {
             fprintf(stderr,
