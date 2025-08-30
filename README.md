@@ -14,7 +14,10 @@ lora_lite is a sandbox for experimenting with LoRa® software-defined radio comp
 
 The original GNU Radio-based implementation is preserved in [legacy_gr_lora_sdr/](legacy_gr_lora_sdr/) and remains unmodified for reference.
 
-For installation and cross-compilation instructions see [SETUP.md](SETUP.md). Testing and benchmarking steps live in [TESTING.md](TESTING.md). Additional documentation can be found in [doc/README.md](doc/README.md). A detailed log of performance experiments and optimization roadmap is available in [doc/EXPERIMENTS.md](doc/EXPERIMENTS.md).
+For installation and cross-compilation instructions see [SETUP.md](SETUP.md). Testing and benchmarking steps live in [TESTING.md](TESTING.md).
+Embedded development notes and guardrails are in [README_EMBEDDED.md](README_EMBEDDED.md) and [doc/EMBEDDED_NOTES.md](doc/EMBEDDED_NOTES.md).
+A detailed log of performance experiments is available in [doc/EXPERIMENTS.md](doc/EXPERIMENTS.md).
+If this project contributes to academic work, please see [CITATION.cff](CITATION.cff) for citation details.
 
 ## Repository Layout
 - `src/` – core modular library (FFT, demod, whitening, header, rx/tx chains, frame sync)
