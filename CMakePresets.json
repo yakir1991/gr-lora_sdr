@@ -1,0 +1,75 @@
+{
+  "version": 4,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "arm-embedded-release",
+      "displayName": "ARM Embedded Release",
+      "generator": "Unix Makefiles",
+      "binaryDir": "build-arm-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "${env:ARM_TOOLCHAIN_FILE}",
+        "LORA_LITE_BENCHMARK": "ON",
+        "LORA_LITE_USE_CMSIS": "ON",
+        "LORA_LITE_USE_LIQUID_FFT": "OFF",
+        "LORA_LITE_WHITEN_LUT8": "ON",
+        "LORA_LITE_WHITEN_LUT8_STATIC": "ON",
+        "LORA_LITE_NEON": "ON",
+        "LORA_LITE_EMB_THROUGHPUT": "ON",
+        "CMAKE_C_FLAGS_RELEASE": "-Os -flto -ffunction-sections -fdata-sections",
+        "CMAKE_EXE_LINKER_FLAGS_RELEASE": "-Wl,--gc-sections"
+      }
+    }
+    ,
+    {
+      "name": "aarch64-embedded-release",
+      "displayName": "AArch64 Embedded Release",
+      "generator": "Unix Makefiles",
+      "binaryDir": "build-aarch64-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_TOOLCHAIN_FILE": "${env:AARCH64_TOOLCHAIN_FILE}",
+        "LORA_LITE_BENCHMARK": "ON",
+        "LORA_LITE_USE_CMSIS": "ON",
+        "LORA_LITE_USE_LIQUID_FFT": "OFF",
+        "LORA_LITE_WHITEN_LUT8": "ON",
+        "LORA_LITE_WHITEN_LUT8_STATIC": "ON",
+        "LORA_LITE_NEON": "ON",
+        "LORA_LITE_EMB_THROUGHPUT": "ON",
+        "CMAKE_C_FLAGS_RELEASE": "-Os -flto -ffunction-sections -fdata-sections",
+        "CMAKE_EXE_LINKER_FLAGS_RELEASE": "-Wl,--gc-sections"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "arm-embedded-release-build",
+      "configurePreset": "arm-embedded-release",
+      "jobs": 0
+    }
+    ,
+    {
+      "name": "aarch64-embedded-release-build",
+      "configurePreset": "aarch64-embedded-release",
+      "jobs": 0
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "arm-embedded-release-test",
+      "configurePreset": "arm-embedded-release",
+      "output": { "outputOnFailure": true }
+    }
+    ,
+    {
+      "name": "aarch64-embedded-release-test",
+      "configurePreset": "aarch64-embedded-release",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}

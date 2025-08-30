@@ -1,0 +1,5 @@
+metric,value
+LORA_MAX_NSYM,256
+LORA_MAX_PAYLOAD_LEN,254
+rx_bytes_saved,512
+tx_bytes_saved,256

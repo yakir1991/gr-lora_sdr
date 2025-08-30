@@ -1,0 +1,33 @@
+Internal ctest changing into directory: /home/yakirqaq/projects/gr-lora_sdr/build-bench-r2rec
+UpdateCTestConfiguration  from :/home/yakirqaq/projects/gr-lora_sdr/build-bench-r2rec/DartConfiguration.tcl
+Parse Config file:/home/yakirqaq/projects/gr-lora_sdr/build-bench-r2rec/DartConfiguration.tcl
+UpdateCTestConfiguration  from :/home/yakirqaq/projects/gr-lora_sdr/build-bench-r2rec/DartConfiguration.tcl
+Parse Config file:/home/yakirqaq/projects/gr-lora_sdr/build-bench-r2rec/DartConfiguration.tcl
+Test project /home/yakirqaq/projects/gr-lora_sdr/build-bench-r2rec
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 66
+    Start 66: bench_fft
+
+66: Test command: /home/yakirqaq/projects/gr-lora_sdr/build-bench-r2rec/tests/bench_fft
+66: Test timeout computed to be: 1500
+66: metric,value
+66: fft_backend,kiss
+66: fft_us_per_exec_sf7,4.506
+66: fft_us_per_exec_sf8,10.290
+66: fft_us_per_exec_sf9,22.610
+66: fft_us_per_exec_sf10,49.746
+66: fft_us_per_exec_sf11,110.766
+66: fft_us_per_exec_sf12,240.266
+1/1 Test #66: bench_fft ........................   Passed    0.07 sec
+
+The following tests passed:
+	bench_fft
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.07 sec
