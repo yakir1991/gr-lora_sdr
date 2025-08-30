@@ -32,6 +32,14 @@ power_out/
 bench_results.csv
 # Any ad-hoc bench CSVs at repo root
 /bench_*.csv
+# CTest bench logs at repo root
+/bench_*.out
+
+# Local memory reports
+/mem_report*
+
+# Stray scratch files
+/func.txt
 
 # Root-level scratch binaries produced during local experiments
 /out_*.bin

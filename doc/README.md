@@ -1,7 +1,6 @@
-# lora_lite
+# lora_lite docs
 
-## Introduction
-lora_lite is a sandbox for experimenting with LoRa® software-defined radio components. It exposes small, self-contained C modules and corresponding tests so researchers can prototype alternative physical-layer ideas without impacting the rest of the project. All runtime state resides in per-instance contexts with no mutable global data, allowing multiple threads to run independently.
+See [../README.md](../README.md) for a project overview. This document collects additional background and API notes.
 
 ## Differences from gr-lora_sdr
 lora_lite evolved from the [gr-lora_sdr](https://github.com/daniestevez/gr-lora_sdr) project but deliberately diverges in several ways:
