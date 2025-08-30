@@ -18,6 +18,12 @@ void lora_generate_whitening_seq(uint8_t *seq);
 extern const uint64_t *lora_whiten_lut8; /* masks[256] */
 extern const uint8_t  *lora_whiten_next8; /* next_state[256] */
 
+#if defined(LORA_LITE_WHITEN_LUT8_STATIC)
+/* Provided by src/whiten_lut8_static.c when enabled */
+extern const uint64_t LORA_WHITEN_LUT8_STATIC[256];
+extern const uint8_t  LORA_WHITEN_NEXT8_STATIC[256];
+#endif
+
 void lora_build_upchirp(float complex *restrict chirp, uint32_t id, uint8_t sf,
                         uint32_t os_factor);
 void lora_build_ref_chirps(float complex *restrict upchirp,

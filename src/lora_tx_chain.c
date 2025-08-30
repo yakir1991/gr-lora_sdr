@@ -35,15 +35,15 @@ lora_status lora_tx_chain(const uint8_t *restrict payload, size_t payload_len,
     buf[payload_len] = crc1;
     buf[payload_len + 1] = crc2;
 
-    uint8_t *whitened = ws->whitened;
-    lora_whiten(buf, whitened, payload_len + 2);
+    /* Whiten in-place to reduce workspace */
+    lora_whiten(buf, buf, payload_len + 2);
 
     uint32_t nsym = (uint32_t)(payload_len + 2);
     if (nsym > LORA_MAX_NSYM)
         return LORA_ERR_TOO_MANY_SYMBOLS;
     uint32_t *symbols = ws->symbols;
     for (size_t i = 0; i < nsym; ++i)
-        symbols[i] = whitened[i];
+        symbols[i] = buf[i];
 
     uint32_t sps = (1u << sf) * (samp_rate / bw);
     size_t need = (size_t)nsym * sps;
@@ -91,4 +91,3 @@ lora_status lora_tx_run(lora_io_t *in, lora_io_t *out, const lora_chain_cfg *cfg
     free(chips);
     return (wr == bytes) ? LORA_OK : LORA_ERR_IO;
 }
-

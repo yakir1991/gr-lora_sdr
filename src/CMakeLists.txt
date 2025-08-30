@@ -11,7 +11,14 @@ add_library(lora_utils lora_utils.c)
 target_include_directories(lora_utils PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include/lora_lite>)
+if(LORA_LITE_WHITEN_LUT8_STATIC)
+  target_sources(lora_utils PRIVATE whiten_lut8_static.c)
+endif()
 target_link_libraries(lora_utils PUBLIC m)
+
+# Consolidated rodata TU (anchors large tables under one object)
+add_library(lora_ro_tables ro_tables.c)
+target_link_libraries(lora_ro_tables PUBLIC m)
 
 
 add_library(lora_io lora_io.c)

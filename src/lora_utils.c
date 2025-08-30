@@ -22,7 +22,12 @@ void lora_generate_whitening_seq(uint8_t *seq) {
 
 __attribute__((constructor)) static void lora_whitening_seq_init(void) {
   lora_generate_whitening_seq(lora_whitening_seq_buf);
-  /* Build 8-byte chunk LUTs for whitening */
+#if defined(LORA_LITE_WHITEN_LUT8_STATIC)
+  /* Point to static rodata tables */
+  lora_whiten_lut8 = LORA_WHITEN_LUT8_STATIC;
+  lora_whiten_next8 = LORA_WHITEN_NEXT8_STATIC;
+#else
+  /* Build 8-byte chunk LUTs for whitening at startup */
   for (int s = 0; s < 256; ++s) {
     uint8_t lfsr = (uint8_t)s;
     uint8_t bytes[8];
@@ -36,6 +41,7 @@ __attribute__((constructor)) static void lora_whitening_seq_init(void) {
     lora_whiten_lut8_buf[s] = mask;
     lora_whiten_next8_buf[s] = lfsr;
   }
+#endif
 }
 
 void lora_build_upchirp(float complex *restrict chirp, uint32_t id, uint8_t sf,

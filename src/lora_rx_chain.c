@@ -213,34 +213,34 @@ lora_status lora_rx_chain(const float complex *restrict chips, size_t nchips,
         ws->sync_sfd_end, ws->sync_sym_off,
         ws->sync_cfo_hz);
 
-    uint8_t *whitened = ws->whitened;
+    uint8_t *bytes = ws->bytes;
     size_t nsym_aligned = (sym_off < nsym) ? (nsym - sym_off) : 0;
     for (size_t i = 0; i < nsym_aligned; ++i)
-        whitened[i] = (uint8_t)(symbols[sym_off + i] & 0xFF);
-
-    uint8_t *payload_crc = ws->payload_crc;
-    lora_dewhiten(whitened, payload_crc, nsym_aligned);
+        bytes[i] = (uint8_t)(symbols[sym_off + i] & 0xFF);
+    /* In-place dewhiten: XOR is safe with identical src/dst */
+    lora_dewhiten(bytes, bytes, nsym_aligned);
 
     if (nsym_aligned < 2)
         return LORA_ERR_INVALID_ARG;
     size_t payload_len = nsym_aligned - 2;
     if (payload_len > payload_buf_len)
         return LORA_ERR_BUFFER_TOO_SMALL;
-    uint8_t crc1 = payload_crc[payload_len];
-    uint8_t crc2 = payload_crc[payload_len + 1];
-
-    uint8_t *tmp = ws->tmp;
-    memcpy(tmp, payload_crc, nsym_aligned);
-    tmp[payload_len] = 0;
-    tmp[payload_len + 1] = 0;
+    uint8_t crc1 = bytes[payload_len];
+    uint8_t crc2 = bytes[payload_len + 1];
+    /* Compute CRC over payload only by zeroing the last two bytes in-place. */
+    uint8_t save1 = crc1, save2 = crc2;
+    bytes[payload_len] = 0;
+    bytes[payload_len + 1] = 0;
     uint8_t crc_n[4];
-    lora_add_crc(tmp, nsym_aligned, crc_n);
+    lora_add_crc(bytes, nsym_aligned, crc_n);
+    bytes[payload_len] = save1;
+    bytes[payload_len + 1] = save2;
     uint8_t calc_crc1 = (uint8_t)((crc_n[1] << 4) | crc_n[0]);
     uint8_t calc_crc2 = (uint8_t)((crc_n[3] << 4) | crc_n[2]);
     if (crc1 != calc_crc1 || crc2 != calc_crc2)
         return LORA_ERR_CRC_MISMATCH;
 
-    memcpy(payload, payload_crc, payload_len);
+    memcpy(payload, bytes, payload_len);
     *payload_len_out = payload_len;
     return LORA_OK;
 }

@@ -294,6 +294,21 @@ if(LORA_LITE_BENCHMARK)
   add_test(NAME bench_graymap COMMAND bench_graymap)
 endif()
 
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_header benchmarks/bench_header.c)
+  target_link_libraries(bench_header PRIVATE lora_header)
+  target_compile_definitions(bench_header PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_header PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_header COMMAND bench_header)
+endif()
+
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_payload_id benchmarks/bench_payload_id.c)
+  target_compile_definitions(bench_payload_id PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_payload_id PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_payload_id COMMAND bench_payload_id)
+endif()
+
 # Micro-benchmark: Demod with CFO
 if(LORA_LITE_BENCHMARK)
   add_executable(bench_demod_cfo benchmarks/bench_demod_cfo.c)
@@ -305,6 +320,14 @@ if(LORA_LITE_BENCHMARK)
   )
   target_compile_options(bench_demod_cfo PRIVATE -O3 -DNDEBUG)
   add_test(NAME bench_demod_cfo COMMAND bench_demod_cfo)
+endif()
+
+if(LORA_LITE_BENCHMARK)
+  add_executable(bench_demod_copy benchmarks/bench_demod_copy.c)
+  target_link_libraries(bench_demod_copy PRIVATE lora_fft_demod)
+  target_compile_definitions(bench_demod_copy PRIVATE LORA_LITE_ENABLE_LOGGING=0)
+  target_compile_options(bench_demod_copy PRIVATE -O3 -DNDEBUG)
+  add_test(NAME bench_demod_copy COMMAND bench_demod_copy)
 endif()
 
 # Micro-benchmark: Interleaver

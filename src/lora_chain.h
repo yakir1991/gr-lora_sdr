@@ -29,16 +29,15 @@ typedef struct {
 } lora_chain_cfg;
 
 typedef struct {
-    uint8_t buf[LORA_MAX_PAYLOAD_LEN + 2];
-    uint8_t whitened[LORA_MAX_PAYLOAD_LEN + 2];
+    uint8_t buf[LORA_MAX_PAYLOAD_LEN + 2]; /* reused for whitening in-place */
     uint32_t symbols[LORA_MAX_NSYM];
 } lora_tx_workspace;
 
 typedef struct {
     uint32_t symbols[LORA_MAX_NSYM];
-    uint8_t whitened[LORA_MAX_NSYM];
-    uint8_t payload_crc[LORA_MAX_NSYM];
-    uint8_t tmp[LORA_MAX_NSYM];
+    /* Shared byte workspace: used sequentially as whitened -> dewhitened (payload+CRC)
+       and for CRC computation to avoid extra buffers. */
+    uint8_t bytes[LORA_MAX_NSYM];
 #ifdef LORA_LITE_FIXED_POINT
     lora_q15_complex qchips[LORA_MAX_CHIPS];
 #endif
