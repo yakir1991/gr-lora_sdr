@@ -68,7 +68,8 @@ class tx_rx_simulation(gr.top_block):
         self.lora_sdr_deinterleaver_0 = lora_sdr.deinterleaver( soft_decoding)
         self.lora_sdr_crc_verif_0 = lora_sdr.crc_verif( 1, False)
         self.lora_sdr_add_crc_0 = lora_sdr.add_crc(has_crc)
-        self.file_sink_tx_iq = blocks.file_sink(gr.sizeof_gr_complex*1, '/home/yakirqaq/projects/lora-lite-phy/vectors/sf8_cr48_iq.bin', False)
+        # Use project-relative vectors path instead of absolute
+        self.file_sink_tx_iq = blocks.file_sink(gr.sizeof_gr_complex*1, 'vectors/sf8_cr48_iq.bin', False)
         self.file_sink_tx_iq.set_unbuffered(False)
         self.file_sink_rx_payload = blocks.file_sink(gr.sizeof_char*1, '/tmp/lora_rx_payload.bin', False)
         self.file_sink_rx_payload.set_unbuffered(False)
@@ -80,7 +81,7 @@ class tx_rx_simulation(gr.top_block):
             noise_seed=0,
             block_tags=True)
         self.channels_channel_model_0.set_min_output_buffer((int(2**sf*samp_rate/bw*1.1)))
-        self.blocks_file_source_0_0 = blocks.file_source(gr.sizeof_char*1, '/home/yakirqaq/projects/lora-lite-phy/vectors/sf8_cr48_payload.bin', False, 0, 0)
+        self.blocks_file_source_0_0 = blocks.file_source(gr.sizeof_char*1, 'vectors/sf8_cr48_payload.bin', False, 0, 0)
         self.blocks_file_source_0_0.set_begin_tag(pmt.PMT_NIL)
 
 

@@ -225,7 +225,7 @@ blocks:
     alias: ''
     begin_tag: pmt.PMT_NIL
     comment: ''
-    file: /home/yakirqaq/projects/lora-lite-phy/vectors/sf8_cr48_payload.bin
+    file: vectors/sf8_cr48_payload.bin
     length: '0'
     maxoutbuf: '0'
     minoutbuf: '0'
@@ -570,7 +570,7 @@ blocks:
     alias: ''
     append: '''False'''
     comment: ''
-    file: /home/yakirqaq/projects/lora-lite-phy/vectors/sf8_cr48_iq.bin
+    file: vectors/sf8_cr48_iq.bin
     type: complex
     unbuffered: '''False'''
     vlen: '1'
