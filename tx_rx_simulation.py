@@ -7,7 +7,7 @@
 # GNU Radio Python Flow Graph
 # Title: Tx Rx Simulation
 # Author: Tapparel Joachim@EPFL,TCL
-# GNU Radio version: v3.11.0.0git-604-gd7f88722
+# GNU Radio version: 3.10.12.0
 
 from gnuradio import blocks
 import pmt
@@ -21,6 +21,7 @@ from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
 import gnuradio.lora_sdr as lora_sdr
+import threading
 
 
 
@@ -29,6 +30,7 @@ class tx_rx_simulation(gr.top_block):
 
     def __init__(self):
         gr.top_block.__init__(self, "Tx Rx Simulation", catch_exceptions=True)
+        self.flowgraph_started = threading.Event()
 
         ##################################################
         # Variables
@@ -75,7 +77,7 @@ class tx_rx_simulation(gr.top_block):
             block_tags=True)
         self.channels_channel_model_0.set_min_output_buffer((int(2**sf*samp_rate/bw*1.1)))
         self.blocks_throttle_0 = blocks.throttle(gr.sizeof_gr_complex*1, (samp_rate*10),True)
-        self.blocks_file_source_0_0 = blocks.file_source(gr.sizeof_char*1, 'data/GRC_default/example_tx_source.txt', False, 0, 0)
+        self.blocks_file_source_0_0 = blocks.file_source(gr.sizeof_char*1, '/home/yakirqaq/projects/lora-lite-phy/external/gr_lora_sdr/data/GRC_default/example_tx_source.txt', False, 0, 0)
         self.blocks_file_source_0_0.set_begin_tag(pmt.PMT_NIL)
 
 
@@ -116,7 +118,6 @@ class tx_rx_simulation(gr.top_block):
         self.lora_sdr_gray_demap_0.set_sf(self.sf)
         self.lora_sdr_hamming_enc_0.set_sf(self.sf)
         self.lora_sdr_interleaver_0.set_sf(self.sf)
-        self.lora_sdr_modulate_0.set_sf(self.sf)
 
     def get_samp_rate(self):
         return self.samp_rate
@@ -209,6 +210,7 @@ def main(top_block_cls=tx_rx_simulation, options=None):
     signal.signal(signal.SIGTERM, sig_handler)
 
     tb.start()
+    tb.flowgraph_started.set()
 
     try:
         input('Press Enter to quit: ')
