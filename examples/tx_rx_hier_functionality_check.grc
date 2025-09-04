@@ -28,10 +28,11 @@ options:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [8, 8]
+    coordinate:
+    - 8
+    - 8
     rotation: 0
     state: enabled
-
 blocks:
 - name: SNRdB
   id: variable
@@ -42,7 +43,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [832, 96.0]
+    coordinate:
+    - 832
+    - 96.0
     rotation: 0
     state: enabled
 - name: bw
@@ -54,7 +57,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [472, 88.0]
+    coordinate:
+    - 472
+    - 88.0
     rotation: 0
     state: enabled
 - name: center_freq
@@ -66,7 +71,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [312, 16.0]
+    coordinate:
+    - 312
+    - 16.0
     rotation: 0
     state: enabled
 - name: clk_offset
@@ -78,7 +85,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [752, 92.0]
+    coordinate:
+    - 752
+    - 92.0
     rotation: 0
     state: enabled
 - name: cr
@@ -90,7 +99,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [552, 16.0]
+    coordinate:
+    - 552
+    - 16.0
     rotation: 0
     state: enabled
 - name: has_crc
@@ -102,7 +113,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [608, 16.0]
+    coordinate:
+    - 608
+    - 16.0
     rotation: 0
     state: enabled
 - name: impl_head
@@ -114,7 +127,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [472, 16.0]
+    coordinate:
+    - 472
+    - 16.0
     rotation: 0
     state: enabled
 - name: pay_len
@@ -126,7 +141,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [680, 16.0]
+    coordinate:
+    - 680
+    - 16.0
     rotation: 0
     state: true
 - name: preamb_len
@@ -138,7 +155,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [912, 16.0]
+    coordinate:
+    - 912
+    - 16.0
     rotation: 0
     state: true
 - name: samp_rate
@@ -150,7 +169,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [232, 16.0]
+    coordinate:
+    - 232
+    - 16.0
     rotation: 0
     state: enabled
 - name: sf
@@ -162,7 +183,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [552, 88.0]
+    coordinate:
+    - 552
+    - 88.0
     rotation: 0
     state: enabled
 - name: soft_decoding
@@ -174,7 +197,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [784, 16.0]
+    coordinate:
+    - 784
+    - 16.0
     rotation: 0
     state: enabled
 - name: sync_word
@@ -186,7 +211,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [616, 88.0]
+    coordinate:
+    - 616
+    - 88.0
     rotation: 0
     state: enabled
 - name: blocks_message_strobe_0_0
@@ -203,26 +230,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [96, 204.0]
-    rotation: 0
-    state: enabled
-- name: blocks_throttle_0
-  id: blocks_throttle
-  parameters:
-    affinity: ''
-    alias: ''
-    comment: ''
-    ignoretag: 'True'
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    samples_per_second: samp_rate*10
-    type: complex
-    vlen: '1'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [600, 212.0]
+    coordinate:
+    - 96
+    - 204.0
     rotation: 0
     state: enabled
 - name: channels_channel_model_0
@@ -243,7 +253,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [764.0, 264]
+    coordinate:
+    - 764.0
+    - 264
     rotation: 270
     state: enabled
 - name: lora_rx_0
@@ -269,7 +281,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [368, 364.0]
+    coordinate:
+    - 368
+    - 364.0
     rotation: 180
     state: true
 - name: lora_sdr_payload_id_inc_0
@@ -285,7 +299,9 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [128, 148.0]
+    coordinate:
+    - 128
+    - 148.0
     rotation: 180
     state: enabled
 - name: lora_tx_0
@@ -309,18 +325,28 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [360, 164.0]
+    coordinate:
+    - 360
+    - 164.0
     rotation: 0
     state: true
-
 connections:
-- [blocks_message_strobe_0_0, strobe, lora_sdr_payload_id_inc_0, msg_in]
-- [blocks_message_strobe_0_0, strobe, lora_tx_0, in]
-- [blocks_throttle_0, '0', channels_channel_model_0, '0']
-- [channels_channel_model_0, '0', lora_rx_0, '0']
-- [lora_sdr_payload_id_inc_0, msg_out, blocks_message_strobe_0_0, set_msg]
-- [lora_tx_0, '0', blocks_throttle_0, '0']
-
+- - blocks_message_strobe_0_0
+  - strobe
+  - lora_sdr_payload_id_inc_0
+  - msg_in
+- - blocks_message_strobe_0_0
+  - strobe
+  - lora_tx_0
+  - in
+- - channels_channel_model_0
+  - '0'
+  - lora_rx_0
+  - '0'
+- - lora_sdr_payload_id_inc_0
+  - msg_out
+  - blocks_message_strobe_0_0
+  - set_msg
 metadata:
   file_format: 1
   grc_version: v3.11.0.0git-604-gd7f88722

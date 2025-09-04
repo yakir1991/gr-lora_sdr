@@ -74,7 +74,8 @@ class tx_rx_simulation(gr.top_block):
             noise_seed=1,
             block_tags=True)
         self.channels_channel_model_0.set_min_output_buffer(int(2**sf*samp_rate/bw*1.1))
-        self.blocks_throttle_0 = blocks.throttle(gr.sizeof_gr_complex*1, (samp_rate*10),True)
+        # Removed throttle to avoid blocking/hangs in headless batch runs
+        # self.blocks_throttle_0 = blocks.throttle(gr.sizeof_gr_complex*1, (samp_rate*10),True)
         self.blocks_file_source_0_0 = blocks.file_source(gr.sizeof_char*1, tx_payload_file, False, 0, 0)
         self.blocks_file_source_0_0.set_begin_tag(pmt.PMT_NIL)
         self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_char*1, rx_payload_file, False) 
@@ -89,7 +90,7 @@ class tx_rx_simulation(gr.top_block):
         ##################################################
         self.msg_connect((self.lora_sdr_header_decoder_0, 'frame_info'), (self.lora_sdr_frame_sync_0, 'frame_info'))
         self.connect((self.blocks_file_source_0_0, 0), (self.lora_sdr_whitening_0, 0))
-        self.connect((self.blocks_throttle_0, 0), (self.channels_channel_model_0, 0))
+        # self.connect((self.blocks_throttle_0, 0), (self.channels_channel_model_0, 0))
         self.connect((self.channels_channel_model_0, 0), (self.lora_sdr_frame_sync_0, 0))
         self.connect((self.lora_sdr_add_crc_0, 0), (self.lora_sdr_hamming_enc_0, 0))
         self.connect((self.lora_sdr_deinterleaver_0, 0), (self.lora_sdr_hamming_dec_0, 0))
@@ -107,7 +108,8 @@ class tx_rx_simulation(gr.top_block):
         self.connect((self.lora_sdr_header_0, 0), (self.lora_sdr_add_crc_0, 0))
         self.connect((self.lora_sdr_header_decoder_0, 0), (self.lora_sdr_dewhitening_0, 0))
         self.connect((self.lora_sdr_interleaver_0, 0), (self.lora_sdr_gray_demap_0, 0))
-        self.connect((self.lora_sdr_modulate_0, 0), (self.blocks_throttle_0, 0))
+        # self.connect((self.lora_sdr_modulate_0, 0), (self.blocks_throttle_0, 0))
+        self.connect((self.lora_sdr_modulate_0, 0), (self.channels_channel_model_0, 0))
         self.connect((self.lora_sdr_whitening_0, 0), (self.lora_sdr_header_0, 0))
 
 
@@ -133,7 +135,7 @@ class tx_rx_simulation(gr.top_block):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
-        self.blocks_throttle_0.set_sample_rate((self.samp_rate*10))
+        # if present: self.blocks_throttle_0.set_sample_rate((self.samp_rate*10))
 
     def get_pay_len(self):
         return self.pay_len
