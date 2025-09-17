@@ -32,7 +32,8 @@ list(APPEND lora_sdr_sources
     data_source_impl.cc
     frame_sync_impl.cc
     deinterleaver_impl.cc
-    payload_id_inc_impl.cc )
+    payload_id_inc_impl.cc
+    standalone_rx_chain.cc )
 
 set(lora_sdr_sources "${lora_sdr_sources}" PARENT_SCOPE)
 if(NOT lora_sdr_sources)
@@ -41,10 +42,13 @@ if(NOT lora_sdr_sources)
 endif(NOT lora_sdr_sources)
 
 add_library(gnuradio-lora_sdr SHARED ${lora_sdr_sources})
-target_link_libraries(gnuradio-lora_sdr gnuradio::gnuradio-runtime)
+target_link_libraries(gnuradio-lora_sdr
+    PUBLIC gnuradio::gnuradio-runtime
+    PUBLIC ${LIQUIDDSP_LIBRARIES})
 target_include_directories(gnuradio-lora_sdr
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     PUBLIC $<INSTALL_INTERFACE:include>
+    PRIVATE ${LIQUIDDSP_INCLUDE_DIR}
   )
 set_target_properties(gnuradio-lora_sdr PROPERTIES DEFINE_SYMBOL "gnuradio_lora_sdr_EXPORTS")
 

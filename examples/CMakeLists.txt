@@ -11,3 +11,6 @@ install(
           tx_rx_simulation.grc
           tx_rx_usrp.grc
     DESTINATION share/gnuradio/examples/lora_sdr)
+
+add_executable(standalone_rx_chain_demo standalone_rx_chain_demo.cc)
+target_link_libraries(standalone_rx_chain_demo PRIVATE gnuradio-lora_sdr)

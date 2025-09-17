@@ -42,6 +42,16 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake/Modules)
 # Find gnuradio to get access to the cmake modules
 find_package(Gnuradio "3.10" REQUIRED)
 
+find_path(LIQUIDDSP_INCLUDE_DIR NAMES liquid/liquid.h)
+find_library(LIQUIDDSP_LIBRARIES NAMES liquid)
+
+if(NOT LIQUIDDSP_INCLUDE_DIR OR NOT LIQUIDDSP_LIBRARIES)
+    message(FATAL_ERROR "liquid-dsp library not found. Please install liquid-dsp and ensure headers are available.")
+endif()
+
+message(STATUS "Found liquid-dsp include dir: ${LIQUIDDSP_INCLUDE_DIR}")
+message(STATUS "Found liquid-dsp library: ${LIQUIDDSP_LIBRARIES}")
+
 # Set the version information here
 set(VERSION_MAJOR 1)
 set(VERSION_API   0)
